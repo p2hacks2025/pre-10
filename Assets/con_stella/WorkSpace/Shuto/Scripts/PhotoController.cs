@@ -1,113 +1,152 @@
 using UnityEngine;
 using UnityEngine.UI;
 using System.Collections;
+using System.Collections.Generic; // ★これがないと List<> エラーが出ます
 
 public class PhotoController : MonoBehaviour
 {
     [Header("UI設定")]
-    [SerializeField] private RawImage previewImage; // 撮影した画像を表示する場所
-    [SerializeField] private Text statusText;       // (あれば)状況を表示するテキスト
+    [SerializeField] private RawImage previewImage;
+    [SerializeField] private Text statusText;
 
-    // 画像処理（リサイズ）の最大サイズ。大きすぎるとメモリ不足で落ちるため制限する。
+    [Header("連携設定")]
+    [SerializeField] private EdgeDetector edgeDetector;
+    [SerializeField] private ConstellationGenerator constellationGenerator;
+    [SerializeField] private CanvasGroup constellationCanvasGroup;
+
+    [Header("アニメーション設定")]
+    [SerializeField] private float fadeDuration = 1.5f;
+
     private const int MaxImageSize = 1024;
-
-    // 保持用のテクスチャ（これを画像認識に渡す）
     private Texture2D currentTexture;
+    private Color defaultPhotoColor;
 
     void Start()
     {
-        // プレビューの縦横比を保つ設定
         if (previewImage != null)
+        {
             previewImage.rectTransform.sizeDelta = new Vector2(MaxImageSize, MaxImageSize);
+            defaultPhotoColor = previewImage.color;
+        }
+
+        if (constellationCanvasGroup != null)
+        {
+            constellationCanvasGroup.alpha = 0f;
+        }
     }
 
-    /// <summary>
-    /// カメラボタンに割り当てる関数
-    /// </summary>
     public void OnClickCamera()
     {
-        if (NativeCamera.IsCameraBusy()) return; // 連打防止
-
+        if (NativeCamera.IsCameraBusy()) return;
         UpdateStatus("カメラを起動します...");
-
-        // カメラ起動
         NativeCamera.TakePicture((path) =>
         {
-            if (path != null)
-            {
-                // 撮影成功！画像をロードして表示
-                LoadAndShowImage(path);
-            }
-            else
-            {
-                UpdateStatus("キャンセルされました");
-            }
-        }, maxSize: MaxImageSize); // ここでリサイズ指定
+            if (path != null) LoadAndShowImage(path);
+            else UpdateStatus("キャンセルされました");
+        }, maxSize: MaxImageSize);
     }
 
-    /// <summary>
-    /// ギャラリーボタンに割り当てる関数
-    /// </summary>
     public void OnClickGallery()
     {
         if (NativeGallery.IsMediaPickerBusy()) return;
-
         UpdateStatus("アルバムを開きます...");
-
-        // ギャラリー起動
         NativeGallery.GetImageFromGallery((path) =>
         {
-            if (path != null)
-            {
-                // 選択成功！画像をロードして表示
-                LoadAndShowImage(path);
-            }
-            else
-            {
-                UpdateStatus("キャンセルされました");
-            }
-        }); // ギャラリー側はLoad時にリサイズする
+            if (path != null) LoadAndShowImage(path);
+            else UpdateStatus("キャンセルされました");
+        });
     }
 
-    /// <summary>
-    /// 画像を読み込んで表示する共通処理
-    /// </summary>
-    /// <param name="path"></param>
     private void LoadAndShowImage(string path)
     {
         if (string.IsNullOrEmpty(path)) return;
-
-        // メモリ節約のため、前の画像があれば破棄する
         if (currentTexture != null) Destroy(currentTexture);
 
-        // 画像をテクスチャとして読み込む（ここでもMaxサイズを指定して回転ズレを修正）
         currentTexture = NativeGallery.LoadImageAtPath(path, MaxImageSize, false);
-
         if (currentTexture == null)
         {
             UpdateStatus("画像の読み込みに失敗しました");
             return;
         }
 
-        // プレビューにセット
-        previewImage.texture = currentTexture;
+        ResetViewBeforeAnimation();
 
-        // アスペクト比修正（重要）
+        // プレビュー表示
+        previewImage.texture = currentTexture;
         previewImage.SetNativeSize();
         float aspect = (float)currentTexture.width / currentTexture.height;
-        // 幅に合わせて高さを調整（簡易的なフィッティング）
-        previewImage.rectTransform.sizeDelta = new Vector2(800, 800 / aspect);
+        // 横幅を800pxとして計算（この値を基準にスケール計算します）
+        float displayWidth = 800f;
+        previewImage.rectTransform.sizeDelta = new Vector2(displayWidth, displayWidth / aspect);
 
-        UpdateStatus("画像取得完了！");
+        UpdateStatus("解析を開始します...");
 
-        // ★★★ ここで「画像認識プログラム」を呼ぶ！ ★★★
-        // StartImageRecognition(currentTexture);
+        if (constellationGenerator != null && edgeDetector != null && constellationCanvasGroup != null)
+        {
+            Debug.Log($"【検問2】輪郭抽出開始");
+
+            // 1. 画像ではなく「輪郭データ」をもらう
+            // ★ここがエラーの原因でした（TextureではなくListを受け取る）
+            List<List<Vector2>> contours = edgeDetector.DetectContours(currentTexture);
+
+            Debug.Log($"【検問3】輪郭データ取得完了。輪郭数: {contours.Count}");
+
+            // 2. 星座生成（座標合わせのためのスケール倍率を渡す）
+            // EdgeDetector内では512pxにリサイズして処理しているため、表示サイズとの比率を計算
+            float processSize = 512f;
+            float scaleFactor = displayWidth / processSize;
+
+            // ★ここも修正（関数名が変わっています）
+            constellationGenerator.GenerateFromContours(contours, scaleFactor);
+
+            // アニメーション開始
+            StartCoroutine(PlayGenerationSequence());
+        }
+        else
+        {
+            Debug.LogError("必要なコンポーネントがセットされていません！Inspectorを確認してください。");
+        }
     }
 
-    /// <summary>
-    /// デバッグ用テキスト表示
-    /// </summary>
-    /// <param name="msg"></param>
+    private void ResetViewBeforeAnimation()
+    {
+        previewImage.color = defaultPhotoColor;
+        if (constellationCanvasGroup != null) constellationCanvasGroup.alpha = 0f;
+    }
+
+    private IEnumerator PlayGenerationSequence()
+    {
+        UpdateStatus("星座を生成中...");
+        yield return null;
+
+        // フェードイン
+        UpdateStatus("星座が浮かび上がります");
+        float elapsed = 0f;
+        while (elapsed < fadeDuration)
+        {
+            elapsed += Time.deltaTime;
+            constellationCanvasGroup.alpha = Mathf.Lerp(0f, 1f, elapsed / fadeDuration);
+            yield return null;
+        }
+        constellationCanvasGroup.alpha = 1f;
+
+        yield return new WaitForSeconds(0.5f);
+
+        // フェードアウト
+        UpdateStatus("背景が消えていきます");
+        elapsed = 0f;
+        while (elapsed < fadeDuration)
+        {
+            elapsed += Time.deltaTime;
+            float newAlpha = Mathf.Lerp(defaultPhotoColor.a, 0f, elapsed / fadeDuration);
+            previewImage.color = new Color(defaultPhotoColor.r, defaultPhotoColor.g, defaultPhotoColor.b, newAlpha);
+            yield return null;
+        }
+        previewImage.color = new Color(defaultPhotoColor.r, defaultPhotoColor.g, defaultPhotoColor.b, 0f);
+
+        UpdateStatus("生成完了！");
+    }
+
     private void UpdateStatus(string msg)
     {
         if (statusText != null) statusText.text = msg;
