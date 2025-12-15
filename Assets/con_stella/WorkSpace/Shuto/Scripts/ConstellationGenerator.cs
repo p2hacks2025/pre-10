@@ -134,7 +134,7 @@ public class ConstellationGenerator : MonoBehaviour
         }
         spawnedObjects.Clear();
     }
-    // ★★★ ここが追加機能：自動生成データのJSON保存 ★★★
+    // 自動生成データのJSON保存
     public void SaveAutoConstellation()
     {
         if (generatedContoursData.Count == 0)
