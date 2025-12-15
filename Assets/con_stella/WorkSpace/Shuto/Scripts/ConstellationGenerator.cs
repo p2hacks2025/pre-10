@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections.Generic;
+using System;
 
 public class ConstellationGenerator : MonoBehaviour
 {
@@ -17,6 +18,9 @@ public class ConstellationGenerator : MonoBehaviour
     [SerializeField] private float minDistanceBetweenStars = 30f;
 
     private List<GameObject> spawnedObjects = new List<GameObject>();
+
+    // List<List<GameObject>> = 「1つの輪郭に含まれる星たちのリスト」のリスト
+    private List<List<GameObject>> generatedContoursData = new List<List<GameObject>>();
 
     public void GenerateFromContours(List<List<Vector2>> contours, float scaleFactor)
     {
@@ -62,14 +66,21 @@ public class ConstellationGenerator : MonoBehaviour
 
             // --- 2. 星と線の生成 ---
 
+            List<GameObject> currentContourStars = new List<GameObject>();
+
             // 星を置く
             foreach (var p in filteredPoints)
             {
-                SpawnStar(p);
+                // 星を生成し、リストに追加
+                GameObject starObj = SpawnStar(p);
+                currentContourStars.Add(starObj);
             }
 
             // 線を引く（間引かれた点同士をつなぐ）
             SpawnLine(filteredPoints);
+
+            // 保存用にデータを記録
+            generatedContoursData.Add(currentContourStars);
         }
     }
 
@@ -100,14 +111,15 @@ public class ConstellationGenerator : MonoBehaviour
     /// 星の生成をする関数
     /// </summary>
     /// <param name="pos"></param>
-    private void SpawnStar(Vector3 pos)
+    private GameObject SpawnStar(Vector3 pos)
     {
         GameObject star = Instantiate(starPrefab, constellationRoot);
         star.transform.localPosition = pos;
-        //ランダムな大きさ
-        float randomScale = Random.Range(minStarScale, maxStarScale);
+        float randomScale = UnityEngine.Random.Range(minStarScale, maxStarScale);
         star.transform.localScale = Vector3.one * randomScale;
+
         spawnedObjects.Add(star);
+        return star; // 生成した星を返すように変更
     }
 
     /// <summary>
@@ -121,5 +133,69 @@ public class ConstellationGenerator : MonoBehaviour
             Destroy(child.gameObject);
         }
         spawnedObjects.Clear();
+    }
+    // ★★★ ここが追加機能：自動生成データのJSON保存 ★★★
+    public void SaveAutoConstellation()
+    {
+        if (generatedContoursData.Count == 0)
+        {
+            Debug.LogWarning("保存する星座がありません");
+            return;
+        }
+
+        ConstellationData saveData = new ConstellationData();
+        saveData.constellationName = "Photo Constellation";
+        saveData.createdAt = DateTime.Now.ToString();
+
+        // 1. すべての星にIDを振る
+        Dictionary<GameObject, int> objToIdMap = new Dictionary<GameObject, int>();
+        int currentId = 0;
+
+        // 全輪郭の全星を走査して登録
+        foreach (var contourStars in generatedContoursData)
+        {
+            foreach (var starObj in contourStars)
+            {
+                StarData sData = new StarData();
+                sData.id = currentId;
+                sData.x = starObj.transform.localPosition.x;
+                sData.y = starObj.transform.localPosition.y;
+                sData.scale = starObj.transform.localScale.x;
+
+                saveData.stars.Add(sData);
+
+                objToIdMap[starObj] = currentId;
+                currentId++;
+            }
+        }
+
+        // 2. 線のつながりを保存
+        // 自動生成は「輪郭（ループ）」なので、リストの順番通りにつないでいく
+        foreach (var contourStars in generatedContoursData)
+        {
+            int count = contourStars.Count;
+            if (count < 2) continue;
+
+            for (int i = 0; i < count; i++)
+            {
+                // 現在の星
+                GameObject currentStar = contourStars[i];
+                // 次の星（最後なら最初に戻る＝ループさせる）
+                GameObject nextStar = contourStars[(i + 1) % count];
+
+                ConnectionData cData = new ConnectionData();
+                cData.fromStarId = objToIdMap[currentStar];
+                cData.toStarId = objToIdMap[nextStar];
+
+                saveData.connections.Add(cData);
+            }
+        }
+
+        // 3. 保存実行（テスト用ローカル保存）
+        string json = JsonUtility.ToJson(saveData, true);
+        Debug.Log("【自動生成星座のJSON】\n" + json);
+
+        PlayerPrefs.SetString("TestSaveData", json);
+        PlayerPrefs.Save();
     }
 }
