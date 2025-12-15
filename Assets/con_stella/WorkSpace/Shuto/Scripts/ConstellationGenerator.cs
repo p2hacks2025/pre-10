@@ -6,68 +6,120 @@ public class ConstellationGenerator : MonoBehaviour
     [Header("設定")]
     [SerializeField] private GameObject starPrefab;
     [SerializeField] private Transform constellationRoot;
-    [SerializeField] private LineRenderer lineRenderer;
+    [SerializeField] private GameObject linePrefab;
 
-    private List<GameObject> spawnedStars = new List<GameObject>();
+    [Header("星のサイズ設定")]
+    [SerializeField] private float minStarScale = 1.0f; // 最小サイズ
+    [SerializeField] private float maxStarScale = 3.0f; // 最大サイズ
+
+    [Header("間引き設定")] 
+    //前の星からこの距離(px)以内なら、星を置かずにスキップする
+    [SerializeField] private float minDistanceBetweenStars = 30f;
+
+    private List<GameObject> spawnedObjects = new List<GameObject>();
 
     public void GenerateFromContours(List<List<Vector2>> contours, float scaleFactor)
     {
         ClearConstellation();
-        // UIの上に描画させるためOrderを大きく
-        lineRenderer.sortingOrder = 100;
 
-        List<Vector3> allLinePoints = new List<Vector3>();
-        int totalStars = 0;
+        // 基本は設定値を使う
+        float currentMinDist = minDistanceBetweenStars;
 
+        //輪郭が多い（複雑な）場合は、間引き距離を広げてスッキリさせる
+        if (contours.Count > 10)
+        {
+            currentMinDist = 50f;
+            Debug.Log($"輪郭が多い({contours.Count})ため、間引き距離を {currentMinDist} に広げました");
+        }
         foreach (var contour in contours)
         {
-            // contourには、すでに「いい感じにカクカクした頂点」が入っている
             if (contour.Count < 3) continue;
 
-            // 一筆書きの線を作る
-            for (int i = 0; i < contour.Count; i++)
-            {
-                // Z座標を0にする（Canvas設定がCameraならこれでOK）
-                Vector3 currentPos = new Vector3(contour[i].x * scaleFactor, contour[i].y * scaleFactor, 0f);
+            // --- 1. 間引き処理（近すぎる点を削除） ---
+            List<Vector3> filteredPoints = new List<Vector3>();
 
-                SpawnStar(currentPos);
-                allLinePoints.Add(currentPos);
-                totalStars++;
+            // 最初の点は必ず採用
+            Vector3 lastAddedPoint = new Vector3(contour[0].x * scaleFactor, contour[0].y * scaleFactor, 0f);
+            filteredPoints.Add(lastAddedPoint);
+
+            for (int i = 1; i < contour.Count; i++)
+            {
+                Vector3 currentPoint = new Vector3(contour[i].x * scaleFactor, contour[i].y * scaleFactor, 0f);
+
+                // 「前の点」との距離を測る
+                float dist = Vector3.Distance(lastAddedPoint, currentPoint);
+
+                // 設定した距離以上離れている場合のみ採用！
+                if (dist >= minDistanceBetweenStars)
+                {
+                    filteredPoints.Add(currentPoint);
+                    lastAddedPoint = currentPoint; // 基準点を更新
+                }
             }
 
-            // 最後の点から最初の点へ線を戻して「閉じた形」にする（星座っぽくする）
-            Vector3 firstPos = new Vector3(contour[0].x * scaleFactor, contour[0].y * scaleFactor, 0f);
-            allLinePoints.Add(firstPos);
+            // 点が減りすぎて、線にならなくなった場合は描画しない
+            if (filteredPoints.Count < 2) continue;
 
-            // ★重要：次の輪郭へ飛ぶときに変な線が出ないようにする工夫
-            // LineRendererの頂点数を操作する代わりに、
-            // 「同じ場所にもう一度点を打つ」と線が切れることがあるが、
-            // LineRenderer単体では完全な分割は難しい。
-            // 見た目を重視するなら、ここで「透明な線」にするなどの工夫が必要だが、
-            // 今回はシンプルに、次の輪郭の始点も追加して強引につなぐ（または許容する）。
-            // もっと綺麗にするなら、1輪郭につき1つのLineRendererオブジェクトを生成するべき。
-            // ↓
-            // 簡易対応：ここではそのまま次の輪郭へ繋がります。
-            // もし「線がつながるのが嫌」なら、Prefab化してLineRendererを複数生成する改修が必要ですが、
-            // まずはこの「ポリゴン星座」の見た目を確認してください。
+            // --- 2. 星と線の生成 ---
+
+            // 星を置く
+            foreach (var p in filteredPoints)
+            {
+                SpawnStar(p);
+            }
+
+            // 線を引く（間引かれた点同士をつなぐ）
+            SpawnLine(filteredPoints);
         }
-
-        lineRenderer.positionCount = allLinePoints.Count;
-        lineRenderer.SetPositions(allLinePoints.ToArray());
     }
 
+    /// <summary>
+    /// 線を生成する関数
+    /// </summary>
+    /// <param name="points"></param>
+    private void SpawnLine(List<Vector3> points)
+    {
+        // 線のプレハブを生成
+        GameObject lineObj = Instantiate(linePrefab, constellationRoot);
+
+        // リストに追加（あとで消すため）
+        spawnedObjects.Add(lineObj);
+
+        LineRenderer lr = lineObj.GetComponent<LineRenderer>();
+        if (lr != null)
+        {
+            lr.useWorldSpace = false; // Canvas内で使うため
+            lr.sortingOrder = 90;     // 星(Order 100想定)より少し奥、背景より手前
+            lr.loop = true;           // 自動で始点と終点をつなぐ
+            lr.positionCount = points.Count;
+            lr.SetPositions(points.ToArray());
+        }
+    }
+
+    /// <summary>
+    /// 星の生成をする関数
+    /// </summary>
+    /// <param name="pos"></param>
     private void SpawnStar(Vector3 pos)
     {
         GameObject star = Instantiate(starPrefab, constellationRoot);
         star.transform.localPosition = pos;
-        star.transform.localScale = Vector3.one * 0.5f;
-        spawnedStars.Add(star);
+        //ランダムな大きさ
+        float randomScale = Random.Range(minStarScale, maxStarScale);
+        star.transform.localScale = Vector3.one * randomScale;
+        spawnedObjects.Add(star);
     }
 
+    /// <summary>
+    /// 星座の削除
+    /// </summary>
     public void ClearConstellation()
     {
-        foreach (Transform child in constellationRoot) Destroy(child.gameObject);
-        spawnedStars.Clear();
-        lineRenderer.positionCount = 0;
+        // Root以下の全オブジェクトを削除（星も線も消える）
+        foreach (Transform child in constellationRoot)
+        {
+            Destroy(child.gameObject);
+        }
+        spawnedObjects.Clear();
     }
 }

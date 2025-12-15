@@ -9,13 +9,17 @@ public class EdgeDetector : MonoBehaviour
     [SerializeField] private double threshold2 = 150;
     [SerializeField] private double minAreaRatio = 0.005; // 0.5%以下のゴミは無視
 
-    // ★追加：近似精度（値が大きいほどカクカクになる。0.001~0.01くらいが目安）
+    // 近似精度（基本値）
     [SerializeField] private double epsilonRatio = 0.005;
 
+    /// <summary>
+    /// 画像から「主要な輪郭の点のリスト」を抽出して返す
+    /// </summary>
     public List<List<Vector2>> DetectContours(Texture2D inputTexture)
     {
         List<List<Vector2>> resultContours = new List<List<Vector2>>();
 
+        // 1. リサイズ（高速化）
         int processW = 512;
         int processH = 512;
         Texture2D resizedTex = ResizeTexture(inputTexture, processW, processH);
@@ -24,6 +28,7 @@ public class EdgeDetector : MonoBehaviour
         Mat grayMat = new Mat();
         Cv2.CvtColor(srcMat, grayMat, ColorConversionCodes.BGR2GRAY);
 
+        // 2. ブラーとエッジ検出
         Mat blurredMat = new Mat();
         Cv2.GaussianBlur(grayMat, blurredMat, new Size(5, 5), 1.5);
         Mat edgesMat = new Mat();
@@ -34,28 +39,43 @@ public class EdgeDetector : MonoBehaviour
         Mat kernel = Cv2.GetStructuringElement(MorphShapes.Rect, new Size(3, 3));
         Cv2.Dilate(edgesMat, dilatedMat, kernel);
 
+        // 3. 輪郭検出
         Point[][] contours;
         HierarchyIndex[] hierarchy;
-        // dilatedMatを使う
         Cv2.FindContours(dilatedMat, out contours, out hierarchy, RetrievalModes.External, ContourApproximationModes.ApproxSimple);
 
+        // ★自動調整ロジック（変数の定義はここで行う）
+        int totalContours = contours.Length;
+        double currentEpsilonRatio = epsilonRatio; // 基本値をセット
+
+        // 輪郭が多すぎる場合は、カクカク具合を強める
+        if (totalContours > 100)
+        {
+            currentEpsilonRatio *= 2.0;
+            Debug.Log($"輪郭多数({totalContours})のため、近似を強くします: {currentEpsilonRatio}");
+        }
+        else if (totalContours < 10)
+        {
+            currentEpsilonRatio *= 0.5;
+            Debug.Log($"輪郭少数({totalContours})のため、詳細に残します: {currentEpsilonRatio}");
+        }
+
+        // 画像の総面積（ゴミ捨て基準用）
         double imageArea = processW * processH;
 
+        // 4. 輪郭処理ループ
         foreach (var contour in contours)
         {
             double area = Cv2.ContourArea(contour);
-            if (area < imageArea * minAreaRatio) continue; // ゴミ捨て
+            if (area < imageArea * minAreaRatio) continue; // 小さいゴミは無視
 
-            // ★ここが新機能！「ポリゴン近似」
-            // 輪郭の長さを測る
+            // ★ここで currentEpsilonRatio を使う
             double perimeter = Cv2.ArcLength(contour, true);
-            // 精度を決める（長さのx%の誤差を許容する）
-            double epsilon = epsilonRatio * perimeter;
+            double epsilon = currentEpsilonRatio * perimeter;
 
-            // 近似された（カクカクした）点群を取得
+            // 近似（カクカク化）
             Point[] approxCurve = Cv2.ApproxPolyDP(contour, epsilon, true);
 
-            // 頂点数が少なすぎる（ただの線）場合は星座にしない
             if (approxCurve.Length < 3) continue;
 
             List<Vector2> unityContour = new List<Vector2>();
@@ -68,6 +88,7 @@ public class EdgeDetector : MonoBehaviour
             resultContours.Add(unityContour);
         }
 
+        // メモリ解放
         srcMat.Dispose(); grayMat.Dispose(); blurredMat.Dispose(); edgesMat.Dispose(); dilatedMat.Dispose();
         Destroy(resizedTex);
 
