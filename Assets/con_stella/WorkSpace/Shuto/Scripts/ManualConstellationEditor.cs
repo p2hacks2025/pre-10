@@ -264,9 +264,11 @@ public class ManualConstellationEditor : MonoBehaviour
     public void TestSaveLocal()
     {
         // 1. 保存用データの器を作る
-        ConstellationData saveData = new ConstellationData();
-        saveData.constellationName = "My Test Constellation";
-        saveData.createdAt = DateTime.Now.ToString();
+        ConstellationData newData = new ConstellationData();
+        newData.constellationName = "Manual Constellation";
+        newData.createdAt = System.DateTime.Now.ToString();
+        //newData.likeCount = 0;
+        //newData.commentRoot = new CommentNode("ROOT");
 
         // 2. 星を保存データに変換 & ID割り振り
         // 「GameObject」と「ID(0,1,2...)」の対応表を作る
@@ -284,7 +286,7 @@ public class ManualConstellationEditor : MonoBehaviour
             sData.y = starObj.transform.localPosition.y;
             sData.scale = starObj.transform.localScale.x;
 
-            saveData.stars.Add(sData);
+            newData.stars.Add(sData);
 
             // マップに記録
             objToIdMap[starObj] = currentId;
@@ -302,17 +304,26 @@ public class ManualConstellationEditor : MonoBehaviour
                 ConnectionData cData = new ConnectionData();
                 cData.fromStarId = objToIdMap[line.starA];
                 cData.toStarId = objToIdMap[line.starB];
-                saveData.connections.Add(cData);
+                newData.connections.Add(cData);
             }
         }
 
-        // 4. JSONに変換してログ出力＆保存
-        string json = JsonUtility.ToJson(saveData, true); // trueで見やすく整形
-        Debug.Log("【JSON保存テスト】\n" + json);
+        ConstellationListWrapper wrapper = new ConstellationListWrapper();
+        if (PlayerPrefs.HasKey("LocalSaveList"))
+        {
+            string json = PlayerPrefs.GetString("LocalSaveList");
+            wrapper = JsonUtility.FromJson<ConstellationListWrapper>(json);
+        }
 
-        // スマホ本体に保存
-        PlayerPrefs.SetString("TestSaveData", json);
+        // 2. リストに追加
+        wrapper.list.Add(newData);
+
+        // 3. 保存
+        string newJson = JsonUtility.ToJson(wrapper);
+        PlayerPrefs.SetString("LocalSaveList", newJson);
         PlayerPrefs.Save();
+
+        Debug.Log($"手書き星座をリストに追加保存しました！(全{wrapper.list.Count}件)");
     }
 
     /// <summary>

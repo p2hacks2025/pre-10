@@ -1,25 +1,8 @@
 using UnityEngine;
-using UnityEngine.SceneManagement; // シーン移動に必要
+using UnityEngine.SceneManagement;
 
 public class SceneNavigator : MonoBehaviour
 {
-
-    //外部からのアクセスを可能にする
-    public static SceneNavigator Instance { get; private set; }
-
-    void Awake()
-    {
-        if (Instance != null && Instance != this)
-        {
-            Destroy(this.gameObject);
-            return;
-        }
-
-        Instance = this;
-
-        DontDestroyOnLoad(this.gameObject);
-    }
-
     // 写真シーンへ移動
     public void LoadPhotoScene()
     {
@@ -32,12 +15,13 @@ public class SceneNavigator : MonoBehaviour
         SceneManager.LoadScene("ManualScene");
     }
 
+    // 夜空シーンへ移動
     public void LoadNightSkyScene()
     {
-        SceneManager.LoadScene("NightSkyScene");
+        SceneManager.LoadScene("SkyScene");
     }
 
-    // タイトルへ戻る（各シーンの「戻る」ボタン用）
+    // タイトルへ戻る
     public void LoadTitleScene()
     {
         SceneManager.LoadScene("TitleScene");

@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using Junya;
+//using Junya;
 
 [Serializable]
 public class ConstellationData
@@ -9,7 +9,8 @@ public class ConstellationData
     public string createdAt;
     public List<StarData> stars = new List<StarData>();
     public List<ConnectionData> connections = new List<ConnectionData>();
-    public Node<String> root = new Node<String>();
+    //public Node<String> root = new Node<String>();
+    //public int likeCount;
 
 }
 
@@ -27,4 +28,10 @@ public class ConnectionData
 {
     public int fromStarId;
     public int toStarId;
+}
+
+[Serializable]
+public class ConstellationListWrapper
+{
+    public List<ConstellationData> list = new List<ConstellationData>();
 }

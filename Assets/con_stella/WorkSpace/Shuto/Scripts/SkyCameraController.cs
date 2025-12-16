@@ -11,7 +11,9 @@ public class SkyCameraController : MonoBehaviour
     [SerializeField] private float minZoom = 2f;  // 最大ズーム（寄り）
     [SerializeField] private float maxZoom = 20f; // 最小ズーム（引き）
 
-    private Vector3 dragOrigin;
+    private Vector3 dragStartPos; // ドラッグ開始位置（ワールド座標）
+    private Vector2 clickStartScreenPos; // クリック判定用の開始位置（スクリーン座標）
+    private bool isDragging = false; // ドラッグ中かどうかの判定
     private Camera cam;
 
     void Start()
@@ -34,51 +36,92 @@ public class SkyCameraController : MonoBehaviour
         if (Pointer.current.press.wasPressedThisFrame)
         {
             Vector2 screenPos = Pointer.current.position.ReadValue();
-            dragOrigin = cam.ScreenToWorldPoint(new Vector3(screenPos.x, screenPos.y, 0));
+            clickStartScreenPos = screenPos;
+            dragStartPos = cam.ScreenToWorldPoint(new Vector3(screenPos.x, screenPos.y, 0));
+            isDragging = false;
         }
 
         // 2. ドラッグ中（押している間）
         if (Pointer.current.press.isPressed)
         {
             Vector2 screenPos = Pointer.current.position.ReadValue();
-            Vector3 currentPos = cam.ScreenToWorldPoint(new Vector3(screenPos.x, screenPos.y, 0));
 
-            // 差分を計算してカメラを逆方向に移動
-            Vector3 difference = dragOrigin - currentPos;
+            // クリック開始位置から一定以上動いたら「ドラッグ」とみなす
+            if (Vector2.Distance(screenPos, clickStartScreenPos) > 10f) // 10ピクセル以上動いたら
+            {
+                isDragging = true;
+            }
 
-            transform.position += difference;
+            if (isDragging)
+            {
+                Vector3 currentPos = cam.ScreenToWorldPoint(new Vector3(screenPos.x, screenPos.y, 0));
+                Vector3 difference = dragStartPos - currentPos;
 
-            // 移動制限（Clamp）
-            float clampedX = Mathf.Clamp(transform.position.x, -mapSize.x, mapSize.x);
-            float clampedY = Mathf.Clamp(transform.position.y, -mapSize.y, mapSize.y);
+                transform.position += difference;
 
-            transform.position = new Vector3(clampedX, clampedY, -10f); // Zは固定
+                // 移動制限
+                float clampedX = Mathf.Clamp(transform.position.x, -mapSize.x, mapSize.x);
+                float clampedY = Mathf.Clamp(transform.position.y, -mapSize.y, mapSize.y);
+                transform.position = new Vector3(clampedX, clampedY, -10f);
+            }
+        }
+
+        // 3. 指を離した瞬間（ドラッグしていなければクリックとみなす）
+        if (Pointer.current.press.wasReleasedThisFrame)
+        {
+            if (!isDragging)
+            {
+                // ここでクリック処理を実行！
+                CheckClickObject(Pointer.current.position.ReadValue());
+            }
+            isDragging = false;
+        }
+    }
+
+    // クリックした場所に何があるか調べる
+    private void CheckClickObject(Vector2 screenPos)
+    {
+        Vector3 worldPos = cam.ScreenToWorldPoint(screenPos);
+
+        // 2DのRaycastを飛ばす
+        RaycastHit2D hit = Physics2D.Raycast(worldPos, Vector2.zero);
+
+        if (hit.collider != null)
+        {
+            // 当たったオブジェクトが「星座」か確認する
+            // ConstellationClickTriggerがついているかチェック
+            ConstellationClickTrigger trigger = hit.collider.GetComponent<ConstellationClickTrigger>();
+
+            if (trigger != null)
+            {
+                Debug.Log("星座をクリックしました: " + hit.collider.gameObject.name);
+                // その星座の中心へズームイン！
+                FocusOnTarget(hit.transform.position);
+            }
         }
     }
 
     private void HandleZoom()
     {
-        float scroll = 0f;
-
-        // ★修正箇所：Pointerではなく Mouse が存在する場合のみスクロール値を取る
         if (Mouse.current != null)
         {
-            // Vector2.y がスクロール量
-            scroll = Mouse.current.scroll.ReadValue().y;
-        }
-
-        if (scroll != 0.0f)
-        {
-            cam.orthographicSize -= scroll * zoomSpeed;
-            // ズーム制限
-            cam.orthographicSize = Mathf.Clamp(cam.orthographicSize, minZoom, maxZoom);
+            float scroll = Mouse.current.scroll.ReadValue().y;
+            if (scroll != 0.0f)
+            {
+                cam.orthographicSize -= scroll * zoomSpeed;
+                cam.orthographicSize = Mathf.Clamp(cam.orthographicSize, minZoom, maxZoom);
+            }
         }
     }
 
     // 特定の星座へズームインする機能
     public void FocusOnTarget(Vector3 targetPos)
     {
-        transform.position = new Vector3(targetPos.x, targetPos.y, -10f);
-        cam.orthographicSize = minZoom + 2f;
+        // ターゲット位置も移動制限の範囲内に収める
+        float clampedX = Mathf.Clamp(targetPos.x, -mapSize.x, mapSize.x);
+        float clampedY = Mathf.Clamp(targetPos.y, -mapSize.y, mapSize.y);
+
+        transform.position = new Vector3(clampedX, clampedY, -10f);
+        cam.orthographicSize = minZoom + 2f; // いい感じのズーム率にする
     }
 }

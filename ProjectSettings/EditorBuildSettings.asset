@@ -12,6 +12,9 @@ EditorBuildSettings:
     path: Assets/con_stella/WorkSpace/Shuto/Scenes/TitleScene.unity
     guid: 144a532d5e03bcb48a732257d310b926
   - enabled: 1
+    path: Assets/con_stella/WorkSpace/Shuto/Scenes/SkyScene.unity
+    guid: ad4a602cbd876b64797aebf091b2c601
+  - enabled: 1
     path: Assets/con_stella/WorkSpace/Shuto/Scenes/PhotoScene.unity
     guid: 827d1a5b1a4422f4c8cafca1fe5901a0
   - enabled: 1
