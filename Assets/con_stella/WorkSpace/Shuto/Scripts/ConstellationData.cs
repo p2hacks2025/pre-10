@@ -10,8 +10,7 @@ public class ConstellationData
     public List<StarData> stars = new List<StarData>();
     public List<ConnectionData> connections = new List<ConnectionData>();
     //public Node<String> root = new Node<String>();
-    //public int likeCount;
-
+    //public int likeCount
 }
 
 [Serializable]
