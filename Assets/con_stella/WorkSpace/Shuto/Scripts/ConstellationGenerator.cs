@@ -13,7 +13,7 @@ public class ConstellationGenerator : MonoBehaviour
     [SerializeField] private float minStarScale = 1.0f; // 最小サイズ
     [SerializeField] private float maxStarScale = 3.0f; // 最大サイズ
 
-    [Header("間引き設定")] 
+    [Header("間引き設定")]
     //前の星からこの距離(px)以内なら、星を置かずにスキップする
     [SerializeField] private float minDistanceBetweenStars = 30f;
 
@@ -136,30 +136,33 @@ public class ConstellationGenerator : MonoBehaviour
         spawnedObjects.Clear();
         generatedContoursData.Clear();
     }
-    // 自動生成データのJSON保存
-    public void SaveAutoConstellation()
+    
+    public void RegisterConstellationData(string name, string description)
     {
-        if (generatedContoursData.Count == 0)
-        {
-            Debug.LogWarning("保存する星座がありません");
-            return;
-        }
+        // 生成された星座データがない場合は中断
+        if (generatedContoursData == null || generatedContoursData.Count == 0) return;
 
         ConstellationData saveData = new ConstellationData();
-        saveData.constellationName = "Photo Constellation";
-        saveData.createdAt = DateTime.Now.ToString();
-        //saveDate.likeCount = 0;
-       // saveDate.commentRoot = new CommentNode("ROOT");
-        // 1. すべての星にIDを振る
+
+        // UIから受け取ったデータをセット
+        saveData.constellationName = name;
+        saveData.description = description;
+
+        saveData.createdAt = System.DateTime.Now.ToString();
+        saveData.likeCount = 0;
+
+        // ---------------------------------------------------------
+        // ★重要：ここから下の「星と線の保存処理」を消さないでください！
+        // ---------------------------------------------------------
+
         Dictionary<GameObject, int> objToIdMap = new Dictionary<GameObject, int>();
         int currentId = 0;
 
-        // 全輪郭の全星を走査して登録
+        // 星の座標を保存
         foreach (var contourStars in generatedContoursData)
         {
             foreach (var starObj in contourStars)
             {
-                // もし starObj が null (削除済み) なら、スキップする
                 if (starObj == null) continue;
 
                 StarData sData = new StarData();
@@ -169,60 +172,60 @@ public class ConstellationGenerator : MonoBehaviour
                 sData.scale = starObj.transform.localScale.x;
 
                 saveData.stars.Add(sData);
-
                 objToIdMap[starObj] = currentId;
                 currentId++;
             }
         }
 
-        // 2. 線のつながりを保存
-        // 自動生成は「輪郭（ループ）」なので、リストの順番通りにつないでいく
+        // 線のつながりを保存
         foreach (var contourStars in generatedContoursData)
         {
-            // 有効な星だけを抽出した一時リストを作る
-            List<GameObject> validStars = new List<GameObject>();
-            int count = contourStars.Count;
-            foreach (var s in contourStars)
-            {
-                if (s != null) validStars.Add(s);
-            }
+            System.Collections.Generic.List<GameObject> validStars = new System.Collections.Generic.List<GameObject>();
+            foreach (var s in contourStars) if (s != null) validStars.Add(s);
 
+            int count = validStars.Count;
             if (count < 2) continue;
 
             for (int i = 0; i < count; i++)
             {
-                // 現在の星
-                GameObject currentStar = contourStars[i];
-                // 次の星（最後なら最初に戻る＝ループさせる）
-                GameObject nextStar = contourStars[(i + 1) % count];
+                GameObject currentStar = validStars[i];
+                GameObject nextStar = validStars[(i + 1) % count];
 
-                // マップにIDが登録されているか確認（念の為）
                 if (objToIdMap.ContainsKey(currentStar) && objToIdMap.ContainsKey(nextStar))
                 {
                     ConnectionData cData = new ConnectionData();
                     cData.fromStarId = objToIdMap[currentStar];
                     cData.toStarId = objToIdMap[nextStar];
-
                     saveData.connections.Add(cData);
                 }
             }
         }
 
-        // --- 保存処理 ---
-        // 既存のリストを読み込み
+        // 最後にローカル保存を実行
+        SaveToLocal(saveData);
+    }
+
+    // データを受け取ってローカルに保存する専用関数
+    private void SaveToLocal(ConstellationData newData)
+    {
         ConstellationListWrapper wrapper = new ConstellationListWrapper();
+
+        // 既存のデータを読み込む
         if (PlayerPrefs.HasKey("LocalSaveList"))
         {
             string json = PlayerPrefs.GetString("LocalSaveList");
             wrapper = JsonUtility.FromJson<ConstellationListWrapper>(json);
         }
 
-        // 追加して保存
-        wrapper.list.Add(saveData);
+        // リストに追加
+        wrapper.list.Add(newData);
+
+        // JSONにして保存
         string newJson = JsonUtility.ToJson(wrapper);
         PlayerPrefs.SetString("LocalSaveList", newJson);
         PlayerPrefs.Save();
 
-        Debug.Log("自動生成星座を保存しました！");
+        Debug.Log($"星座 '{newData.constellationName}' を保存しました！");
     }
+
 }

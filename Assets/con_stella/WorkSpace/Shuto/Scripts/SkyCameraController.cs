@@ -1,5 +1,5 @@
 using UnityEngine;
-using UnityEngine.InputSystem; // Input System‚ðŽg‚¤‚½‚ß‚É•K—v
+using UnityEngine.InputSystem;
 
 public class SkyCameraController : MonoBehaviour
 {

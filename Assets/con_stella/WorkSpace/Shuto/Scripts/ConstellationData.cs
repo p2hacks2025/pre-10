@@ -18,13 +18,23 @@ public class ConstellationData : IAttachable
 {
     public string constellationName;
     public string createdAt;
+    public string description;
     public List<StarData> stars = new List<StarData>();
     public List<ConnectionData> connections = new List<ConnectionData>();
-    public Comment root = new(null);
-    //public int likeCount;
+    /*最初からnullだと、参照するときに、ぬるぽを吐くから最初は初期化しない
+     * 代わりに、必要になったら初期化する（Attach()の部分で）*/
+    [NonSerialized] public Comment root;
+    public int likeCount;
 
     public void Attach(ref Comment comment)
     {
+        // rootがまだなければ作る
+        if (this.root == null)
+        {
+            // CommentManager が存在している時限定
+            this.root = new Comment(null);
+        }
+
         comment.gameObject.transform.SetParent(GameObject.Find(this.constellationName).transform);
         this.root.children.Add(comment);
         comment.parent = this;
@@ -52,11 +62,7 @@ public class ConstellationData
 
 } 
  */
-=======
-    //public Node<String> root = new Node<String>();
-    //public int likeCount
-}
->>>>>>> dbb765675d886d9c943b3125581ca9a8bcedb01c
+
 
 [Serializable]
 public class StarData

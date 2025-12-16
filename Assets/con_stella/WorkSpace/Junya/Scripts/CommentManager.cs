@@ -13,15 +13,15 @@ namespace Junya
             Comment c1 = new("c1");
             Comment c1_1 = new("c1_1");
             c1.Attach(ref c1_1);
-            Comment c1_2 = new("c1_2");
+            /*Comment c1_2 = new("c1_2");
             c1.Attach(ref c1_2);
             Comment c1_3 = new("c1_3");
             c1.Attach(ref c1_3);
             Comment c1_1_1 = new("c1_1_1");
             c1_1.Attach(ref c1_1_1);
-
-            Debug.Log(c1.GetDescendantsCount());
             
+            Debug.Log(c1.GetDescendantsCount());
+            */
             
             /*
             Comment parent = new("parent");

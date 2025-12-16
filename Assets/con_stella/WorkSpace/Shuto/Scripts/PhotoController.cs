@@ -13,6 +13,7 @@ public class PhotoController : MonoBehaviour
     [SerializeField] private EdgeDetector edgeDetector;
     [SerializeField] private ConstellationGenerator constellationGenerator;
     [SerializeField] private CanvasGroup constellationCanvasGroup;
+    [SerializeField] private PhotoUIManager uiManager;
 
     [Header("アニメーション設定")]
     [SerializeField] private float fadeDuration = 1.5f;
@@ -86,7 +87,6 @@ public class PhotoController : MonoBehaviour
             Debug.Log($"【検問2】輪郭抽出開始");
 
             // 1. 画像ではなく「輪郭データ」をもらう
-            // ★ここがエラーの原因でした（TextureではなくListを受け取る）
             List<List<Vector2>> contours = edgeDetector.DetectContours(currentTexture);
 
             Debug.Log($"【検問3】輪郭データ取得完了。輪郭数: {contours.Count}");
@@ -143,6 +143,8 @@ public class PhotoController : MonoBehaviour
             yield return null;
         }
         previewImage.color = new Color(defaultPhotoColor.r, defaultPhotoColor.g, defaultPhotoColor.b, 0f);
+
+        uiManager.ShowSettingPanel();
 
         UpdateStatus("生成完了！");
     }
