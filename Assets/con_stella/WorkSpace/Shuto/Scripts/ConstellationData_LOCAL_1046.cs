@@ -46,17 +46,11 @@ public class ConstellationData
     public string createdAt;
     public List<StarData> stars = new List<StarData>();
     public List<ConnectionData> connections = new List<ConnectionData>();
-<<<<<<< HEAD
     //public Node<string> root = new Node<string>();
     //public int likeCount;
 
 } 
  */
-=======
-    //public Node<String> root = new Node<String>();
-    //public int likeCount
-}
->>>>>>> dbb765675d886d9c943b3125581ca9a8bcedb01c
 
 [Serializable]
 public class StarData
