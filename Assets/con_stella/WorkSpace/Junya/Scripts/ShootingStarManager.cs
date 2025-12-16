@@ -32,9 +32,11 @@ public class ShootingStarManager : MonoBehaviour
     }
 }
 
-public class ShootingStar
+[Serializable] public class ShootingStar
 {
     private readonly GameObject gameObject;
+
+    public string content;
 
     public ShootingStar(string content, Vector3 initial, Vector3 velocity)
     {

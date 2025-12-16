@@ -10,7 +10,7 @@ public class SkyUIManager : UIBaseManager
     [SerializeField] private RectTransform postStarPanel; //流れ星投稿用パネル
     [SerializeField] private TextMeshProUGUI nameText;  // 星座名を表示するテキスト
     [SerializeField] private TextMeshProUGUI descriptionText; //星座の説明を表示するテキスト
-
+    [SerializeField] private TextMeshProUGUI content;     //流れ星用投稿テキスト
     // 外部スクリプト連携
     [SerializeField] private SkyCameraController cameraController;
 
