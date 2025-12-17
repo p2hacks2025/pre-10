@@ -7,61 +7,35 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
 
-using System.Linq;
-
-/*
-
-using System;
-using System.Collections.Generic;
-//using Junya;
-
-[Serializable]
-public class ConstellationData
-{
-    public string constellationName;
-    public string createdAt;
-    public List<StarData> stars = new List<StarData>();
-    public List<ConnectionData> connections = new List<ConnectionData>();
-    //public Node<String> root = new Node<String>();
-    //public int likeCount;
-
-}
-
-[Serializable]
-public class StarData
-{
-    public int id;
-    public float x;
-    public float y;
-    public float scale;
-}
-
-[Serializable]
-public class ConnectionData
-{
-    public int fromStarId;
-    public int toStarId;
-}
-
-[Serializable]
-public class ConstellationListWrapper
-{
-    public List<ConstellationData> list = new List<ConstellationData>();
-} 
-
- */
+using Cysharp.Threading.Tasks;
 
 namespace Junya
 {
 #if new
 
-    [Serializable] public sealed class Comment : IAttachable
+    [Serializable] public sealed class Comment : IAttachable, IAddCommentable
     {
         public IAttachable parent;
         public List<Comment> children;
 
+        private readonly List<Color> iconColors = new() {new(255f, 187f, 0f)/*yellow*/, new(45f, 73f, 98f)/*light blue*/, new(15f, 44f, 68f)/*deep blue*/};
+
+        //iconColorsからランダムに選んだ色(参照する度に再抽選)
+        private Color randomColor
+        {
+            get => CommentManager.instance.iconColors[new System.Random().Next(0, CommentManager.instance.iconColors.Count)];
+        }
+
+        //星座に直接ついているコメントならtrueそうでなければfalseを返す変数
+        private bool isDirectlyAttached
+        {
+            get => this.parent != null && this.parent is ConstellationData;
+        }
+
+        //内容
         private string content;
-        public string Content
+       
+        private string Content
         {
             get
             {
@@ -76,6 +50,10 @@ namespace Junya
         }
 
         public readonly GameObject gameObject;
+        public GameObject iconObject
+        {
+            get => this.gameObject.transform.Find("Icon").gameObject;
+        }
 
         public Comment(string content)
         {
@@ -85,10 +63,18 @@ namespace Junya
             this.gameObject = MonoBehaviour.Instantiate(CommentManager.instance.prefab, Vector3.zero, Quaternion.identity);
             this.Content = content;
             this.gameObject.name = content;
+            this.gameObject.transform.Find("Icon").GetComponent<SpriteRenderer>().color = randomColor;
 
             this.isActive = true;
 
             CommentManager.instance.StartCoroutine(InternalCoroutine());
+        }
+
+        public async UniTask<Comment> AddComment()
+        {
+            Comment reply = new Comment(await CommentManager.AllowWrite(CommentManager.maxLetter));
+            this.Attach(ref reply);
+            return reply;
         }
 
         public void Attach(ref Comment comment)
@@ -98,10 +84,13 @@ namespace Junya
             this.children.Add(comment);
             comment.parent = this;
 
-            //子の座標設定
-            comment.gameObject.transform.position = this.gameObject.transform.position;
-        }
+            Debug.Log("reply count = " + this.children.Count);
 
+            //子の座標設定
+            comment.gameObject.transform.position = this.gameObject.transform.position + Vector3.down * (this.children.Count) * CommentManager.interval;
+
+        }
+        /*
         public int GetDescendantsCount()
         {
             int result = 0;
@@ -115,7 +104,7 @@ namespace Junya
 
             return result;
         }
-
+        */
         public void ActivateChildren()
         {
             foreach (Comment child in this.children) child.Activate();
@@ -134,7 +123,6 @@ namespace Junya
             this.isActive = false;
         }
 
-        private const float interval = 2f;
         private void Update()
         {
             //Debug.Log("update was called");
@@ -210,6 +198,10 @@ namespace Junya
     public interface IAttachable
     {
         public abstract void Attach(ref Comment comment);
+    }
+    public interface IAddCommentable
+    {
+        public abstract UniTask<Comment> AddComment();
     }
 
 #elif old    
