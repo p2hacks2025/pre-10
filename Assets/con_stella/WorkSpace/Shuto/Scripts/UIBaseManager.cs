@@ -5,7 +5,7 @@ using System.Collections;
 
 public class UIBaseManager : MonoBehaviour
 {
-    [Header("UIパーツ")]
+    [Header("共通UIパーツ")]
     [SerializeField] protected Button closeButton;        // 閉じるボタン
 
     [Header("アニメーション設定")]

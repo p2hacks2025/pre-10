@@ -20,7 +20,7 @@ public class ManualConstellationEditor : MonoBehaviour
     [SerializeField] private float maxStarScale = 5.0f; // 最大サイズ
 
     [Header("操作パラメータ")]
-    [SerializeField] private float touchRadius = 50f; // 星をタップしたと判定する距離(px)
+    //[SerializeField] private float touchRadius = 50f; // 星をタップしたと判定する距離(px)
 
     // 管理用リスト
     private List<GameObject> myStars = new List<GameObject>(); //星

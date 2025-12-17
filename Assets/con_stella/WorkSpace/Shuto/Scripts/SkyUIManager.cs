@@ -5,12 +5,15 @@ using System.Collections;
 
 public class SkyUIManager : UIBaseManager
 {
-    [Header("UIパーツ")]
+    [Header("星座用UIパーツ")]
     [SerializeField] private RectTransform detailPanel; // 星座詳細パネル
-    [SerializeField] private RectTransform postStarPanel; //流れ星投稿用パネル
     [SerializeField] private TextMeshProUGUI nameText;  // 星座名を表示するテキスト
     [SerializeField] private TextMeshProUGUI descriptionText; //星座の説明を表示するテキスト
+
+    [Header("流れ星用UIパーツ")]
+    [SerializeField] private RectTransform postStarPanel; //流れ星投稿用パネル
     [SerializeField] private TextMeshProUGUI content;     //流れ星用投稿テキスト
+
     // 外部スクリプト連携
     [SerializeField] private SkyCameraController cameraController;
 
@@ -24,11 +27,11 @@ public class SkyUIManager : UIBaseManager
     }
 
     // 星座がクリックされたら呼ばれる関数
-    public void ShowDetail(string constellationName)
+    public void ShowDetail(string constellationName, string desc)
     {
         // 1. テキスト更新
         nameText.text = constellationName;
-        //descriptionText.text = desc;
+        descriptionText.text = desc;
 
         currentPanel = detailPanel;
         // 2. パネルを「出す」アニメーション
@@ -43,6 +46,18 @@ public class SkyUIManager : UIBaseManager
         currentPanel = postStarPanel;
         if (currentAnimation != null) StopCoroutine(currentAnimation);
         currentAnimation = StartCoroutine(SlidePanel(0));
+    }
+
+    //投稿ボタンが押されたら呼ばれる関数
+    public void OnPostButtonClicked()
+    {
+        string msg = content.text;
+
+        // 1. データ作成
+        ShootingStarData data = new ShootingStarData(msg, "自分");
+
+        // 2. ローカルで即座に流す（自分の投稿はすぐ見たい）
+        ShootingStarManager.instance.SpawnStar(data);
     }
 
     // 閉じるボタンが押されたら呼ばれる関数

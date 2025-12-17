@@ -114,12 +114,12 @@ public class SkyCameraController : MonoBehaviour
                 // ズーム実行
                 FocusOnTarget(hit.transform.position);
 
-                // ★UIを表示して、操作をロックする
+                // UIを表示して、操作をロックする
                 isInputLocked = true;
 
-                // トリガーからデータを取得して名前を表示（データ取得メソッドが必要）
-                // 仮でオブジェクト名を渡します
-                uiManager.ShowDetail(hit.collider.gameObject.name);
+                //データ取得
+                ConstellationData data = trigger.GetData();
+                uiManager.ShowDetail(data.constellationName, data.description);
             }
         }
     }

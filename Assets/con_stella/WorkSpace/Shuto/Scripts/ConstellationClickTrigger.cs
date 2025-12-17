@@ -10,9 +10,9 @@ public class ConstellationClickTrigger : MonoBehaviour
         myData = data;
         camController = cam;
     }
-    /*
+
     public ConstellationData GetData()
     {
-
-    }*/
+        return myData;
+    }
 }
