@@ -9,6 +9,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 28454977254101804}
+  - component: {fileID: 2292622928745150005}
   m_Layer: 0
   m_Name: Comment
   m_TagString: Untagged
@@ -34,6 +35,20 @@ Transform:
   - {fileID: 6978831025244304590}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2292622928745150005
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 82845079007114281}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 94da13b5e77ab734fadebda42f95217f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CommentListElement
+  iconImage: {fileID: 5687708067475057627}
+  contentText: {fileID: 1418098294496148666}
 --- !u!1 &1552750786760053311
 GameObject:
   m_ObjectHideFlags: 0

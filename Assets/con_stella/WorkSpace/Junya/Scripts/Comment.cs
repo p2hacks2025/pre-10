@@ -6,7 +6,7 @@ using System.Collections;
 
 using UnityEngine;
 using UnityEngine.UI;
-
+using TMPro;
 using Cysharp.Threading.Tasks;
 
 namespace Junya
@@ -45,8 +45,25 @@ namespace Junya
             {
                 //ゲームオブジェクトの設定
                 this.content = value;
+                //Canvasを使わない形に変えたため、Canvasを探さないようにする
+                /*
                 this.gameObject.transform.Find("Canvas").Find("Content").GetComponent<Text>().text = value;
+                */
+                var textObj = this.gameObject.transform.Find("Content");
+                if (textObj != null)
+                {
+                    // TextMeshProUGUI か Text か、プレハブにつけたコンポーネントに合わせてください
+                    // ここでは新しいUIに合わせてTextMeshProUGUIとしています
+                    var tmp = textObj.GetComponent<TextMeshProUGUI>();
+                    if (tmp != null) tmp.text = value;
+                    else textObj.GetComponent<Text>().text = value; // 念のため旧Textもケア
+                }
             }
+        }
+
+        public string GetContent()
+        {
+            return this.content;
         }
 
         public readonly GameObject gameObject;
@@ -61,9 +78,19 @@ namespace Junya
 
             //ゲームオブジェクトの設定
             this.gameObject = MonoBehaviour.Instantiate(CommentManager.instance.prefab, Vector3.zero, Quaternion.identity);
-            this.Content = content;
             this.gameObject.name = content;
-            this.gameObject.transform.Find("Icon").GetComponent<SpriteRenderer>().color = randomColor;
+            this.Content = content;
+            //ScrollViewを使うため、SpriteRendererから、Imageに変更
+            //this.gameObject.transform.Find("Icon").GetComponent<SpriteRenderer>().color = randomColor;
+            var iconTrans = this.gameObject.transform.Find("Icon");
+            if (iconTrans != null)
+            {
+                var img = iconTrans.GetComponent<Image>();
+                if (img != null)
+                {
+                    img.color = randomColor;
+                }
+            }
 
             this.isActive = true;
 

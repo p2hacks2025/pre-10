@@ -29,6 +29,21 @@ public class UIBaseManager : MonoBehaviour
         currentAnimation = StartCoroutine(SlidePanel(-panelHeight)); // Y=-300 (画面外) へ
     }
 
+    // パネルを開く共通メソッド
+    public virtual void Open()
+    {
+        if (currentPanel == null) return;
+
+        if (currentAnimation != null) StopCoroutine(currentAnimation);
+        currentAnimation = StartCoroutine(SlidePanel(0)); // Y=0 (画面内) へ
+    }
+
+    // パネルを閉じる共通メソッド
+    public virtual void Close()
+    {
+        OnCloseButtonClicked();
+    }
+
     // 「にゅっ」と動かす処理
     protected  virtual IEnumerator SlidePanel(float targetY)
     {

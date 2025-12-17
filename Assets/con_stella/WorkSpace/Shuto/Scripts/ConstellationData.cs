@@ -26,6 +26,7 @@ public class ConstellationData : IAttachable
     [NonSerialized] public Comment root;
     public int likeCount;
 
+    //データの紐づけのみを行うように変更。（表示は別でやる）
     public void Attach(ref Comment comment)
     {
         // rootがまだなければ作る
@@ -34,12 +35,13 @@ public class ConstellationData : IAttachable
             // CommentManager が存在している時限定
             this.root = new Comment(null);
         }
-
+        /*
         comment.gameObject.transform.SetParent(GameObject.Find(this.constellationName).transform);
         this.root.children.Add(comment);
         comment.parent = this;
         comment.gameObject.transform.position = GameObject.Find(this.constellationName).transform.position;
-
+        */
+        this.root.children.Add(comment);
     }
 
     public ConstellationData()

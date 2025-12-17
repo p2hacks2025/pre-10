@@ -167,23 +167,35 @@ public class ShootingStar
 
         // テキストセット
         // "Content"という名前の子オブジェクトにTextがある前提
-        var textComp = this.gameObject.transform.Find("Content")?.GetComponent<Text>();
-        if (textComp != null)
+        Transform contentTrans = this.gameObject.transform.Find("Content");
+        if (contentTrans == null)
         {
-            textComp.text = content;
+            Debug.LogError("【エラー】'Content' という名前の子オブジェクトが見つかりません！プレハブを確認してください。");
         }
         else
         {
-            // TextMeshProを使っている場合はここを変える必要があります
-            //this.gameObject.GetComponentInChildren<TextMeshProUGUI>().text = content;
-            Debug.LogWarning("Textコンポーネントが見つかりません");
+            // 2. Legacy Text か TextMeshPro の両方を試す
+            Text legacyText = contentTrans.GetComponent<Text>();
+            TMPro.TextMeshProUGUI tmpText = contentTrans.GetComponent<TMPro.TextMeshProUGUI>();
+
+            if (legacyText != null)
+            {
+                legacyText.text = content;
+                // Debug.Log("Legacy Text にセットしました");
+            }
+            else if (tmpText != null)
+            {
+                tmpText.text = content;
+                // Debug.Log("TextMeshPro にセットしました");
+            }
+            else
+            {
+                Debug.LogError("【エラー】'Content' オブジェクトに Text または TextMeshProUGUI コンポーネントがついていません！");
+            }
         }
 
         // 移動開始
         ShootingStarManager.instance.StartCoroutine(ShootCoroutine(velocity));
-
-        //5秒後に自動消滅（メモリリーク防止）
-        MonoBehaviour.Destroy(this.gameObject, 15f);
     }
 
     private IEnumerator ShootCoroutine(Vector3 velocity)

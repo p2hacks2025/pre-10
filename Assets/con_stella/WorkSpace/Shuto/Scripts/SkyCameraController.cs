@@ -119,7 +119,7 @@ public class SkyCameraController : MonoBehaviour
 
                 //ƒf[ƒ^æ“¾
                 ConstellationData data = trigger.GetData();
-                uiManager.ShowDetail(data.constellationName, data.description);
+                uiManager.ShowDetail(data);
             }
         }
     }
