@@ -52,8 +52,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 94da13b5e77ab734fadebda42f95217f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CommentListElement
-  iconImage: {fileID: 8844701059880214466}
   contentText: {fileID: 1418098294496148666}
+  iconImage: {fileID: 8844701059880214466}
+  layoutElement: {fileID: 2919047278250530310}
 --- !u!114 &2919047278250530310
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -68,7 +69,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.LayoutElement
   m_IgnoreLayout: 0
   m_MinWidth: -1
-  m_MinHeight: 100
+  m_MinHeight: 1000
   m_PreferredWidth: -1
   m_PreferredHeight: -1
   m_FlexibleWidth: -1

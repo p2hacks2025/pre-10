@@ -122,7 +122,7 @@ namespace Junya
 
         }
 
-
+        /*
         // Update is called once per frame
         async void Update()
         {
@@ -130,7 +130,7 @@ namespace Junya
 
             //(サンプル) エンターキーを押したときにInputFieldを確定する場合
             if (Input.GetKeyDown(KeyCode.Return)) Send();
-        }
+        }*/
     }
 
 }

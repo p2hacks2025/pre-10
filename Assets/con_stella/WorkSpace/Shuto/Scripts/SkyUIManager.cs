@@ -20,8 +20,7 @@ public class SkyUIManager : UIBaseManager
     [Header("【1】DetailPanel (星座詳細)")]
     [SerializeField] private RectTransform detailPanel;
     [SerializeField] private TextMeshProUGUI nameText;
-    [SerializeField] private TextMeshProUGUI descriptionText;
-    [SerializeField] private Transform listContentRoot;       // ここが ScrollView/Viewport/Content であること
+    [SerializeField] private Transform detailDescriptionRoot; [SerializeField] private Transform listContentRoot;       // ここが ScrollView/Viewport/Content であること
     [SerializeField] private CommentListElement commentItemPrefab;
 
     [Header("【2】PostStarPanel (流れ星投稿)")]
@@ -31,10 +30,11 @@ public class SkyUIManager : UIBaseManager
     [Header("【3】ReplyPanel (返信)")]
     [SerializeField] private RectTransform replyPanel;
     [SerializeField] private TMP_InputField replyContentInput;
+    [SerializeField] private Transform replyDescriptionRoot;
 
     [Header("その他")]
     [SerializeField] private SkyCameraController cameraController;
-
+    [SerializeField] private CommentManager commentManager;
     // 内部変数
     private ConstellationData currentData;
     private float currentPanelOffset;
@@ -81,10 +81,8 @@ public class SkyUIManager : UIBaseManager
         currentData = data;
 
         if (nameText) nameText.text = data.constellationName;
-        if (descriptionText) descriptionText.text = data.description;
 
-        // ★重要: ScrollViewの中身を一度空にして、データから再生成する
-        // これにより、さっき追加したコメントも正しくScrollViewの中に表示されます
+        SetDescriptionWithPrefab(detailDescriptionRoot, data.description); //説明文表示
         if (listContentRoot)
         {
             foreach (Transform child in listContentRoot) Destroy(child.gameObject);
@@ -93,9 +91,8 @@ public class SkyUIManager : UIBaseManager
             {
                 foreach (var childComment in data.root.children)
                 {
-                    // ここで Instantiate することで、ScrollViewの中に綺麗に並びます
-                    var item = Instantiate(commentItemPrefab, listContentRoot);
-                    item.Setup(childComment.GetContent(), Color.cyan);
+                    //ヘルパー関数を使って生成処理を共通化
+                    CreateCommentObject(listContentRoot, childComment.GetContent(), true);
                 }
             }
         }
@@ -103,10 +100,82 @@ public class SkyUIManager : UIBaseManager
         SwitchPanel(detailPanel, detailPanelOffset);
     }
 
+    // ★追加: CommentManagerからプレハブと色を取得して生成する共通関数
+    private void CreateCommentObject(Transform root, string text, bool useRandomColor)
+    {
+        // 1. シングルトンインスタンスを取得 (Junya.CommentManagerと明示)
+        Junya.CommentManager manager = Junya.CommentManager.instance;
+
+        // 念のためFindでも探す
+        if (manager == null) manager = FindObjectOfType<Junya.CommentManager>();
+
+        if (manager == null || manager.prefab == null)
+        {
+            Debug.LogError("CommentManagerが見つからないか、Prefabが設定されていません！");
+            return;
+        }
+
+        // 2. 生成
+        GameObject itemObj = Instantiate(manager.prefab, root);
+
+        // 3. サイズリセット
+        itemObj.transform.localScale = Vector3.one;
+        itemObj.transform.localPosition = Vector3.zero;
+        itemObj.transform.localRotation = Quaternion.identity;
+
+        // 4. セットアップ
+        CommentListElement itemScript = itemObj.GetComponent<CommentListElement>();
+        if (itemScript != null)
+        {
+            Color iconColor = Color.cyan;
+
+            if (useRandomColor)
+            {
+                // ランダム色
+                if (manager.iconColors != null && manager.iconColors.Count > 0)
+                {
+                    iconColor = manager.iconColors[Random.Range(0, manager.iconColors.Count)];
+                }
+            }
+            else
+            {
+                // 説明文用の固定色（例：黄色）
+                iconColor = new Color(1f, 0.8f, 0.2f);
+            }
+
+            itemScript.Setup(text, iconColor);
+        }
+    }
+
+    // 指定した場所にプレハブを生成して説明文を表示するヘルパー関数
+    private void SetDescriptionWithPrefab(Transform root, string text)
+    {
+        if (root == null) return;
+
+        // すでにあるものを消す（古い説明文を削除）
+        foreach (Transform child in root) Destroy(child.gameObject);
+
+        // プレハブ生成
+        var item = Instantiate(commentItemPrefab, root);
+
+        // サイズ・位置リセット
+        item.transform.localScale = Vector3.one;
+        item.transform.localPosition = Vector3.zero;
+        item.transform.localRotation = Quaternion.identity;
+
+        // テキストセット（色は目立つように黄色などに設定例）
+        item.Setup(text, new Color(1f, 0.8f, 0.2f));
+    }
+
     // 返信ボタン (DetailPanel -> ReplyPanel)
     public void OnReplyButtonClicked()
     {
         if (replyContentInput) replyContentInput.text = "";
+        // 返信パネルにも同じ説明文をプレハブで表示
+        if (currentData != null)
+        {
+            SetDescriptionWithPrefab(replyDescriptionRoot, currentData.description);
+        }
         SwitchPanel(replyPanel, replyPanelOffset);
     }
 
