@@ -97,6 +97,8 @@ public class SkyProject2D : MonoBehaviour
         return new Vector3(Random.Range(-spawnArea.x, spawnArea.x), Random.Range(-spawnArea.y, spawnArea.y), 0);
     }
 
+    public static void StaticGenerate(ConstellationData data, Vector3 position) => new GameObject().transform.GetComponent<SkyProject2D>().GenerateConstellationObject(data, position);
+
     private void GenerateConstellationObject(ConstellationData data, Vector3 position)
     {
         // 5. プレハブチェック
@@ -154,6 +156,27 @@ public class SkyProject2D : MonoBehaviour
                            currentScale);
             }
         }
+    }
+
+    private void ScaleConstellationObject(in ConstellationData data, in float frameWidth, in float frameHeight)
+    {
+        float up = data.stars[0].y;
+        float down = data.stars[0].y;
+        float right = data.stars[0].x;
+        float left = data.stars[0].x;
+
+        foreach(StarData star in data.stars)
+        {
+            if (up < star.y) up = star.y;
+            if(down > star.y) down = star.y;
+            if(left > star.x) left = star.x;
+            if(right < star.x) right = star.x;
+        }
+
+        float width = Mathf.Abs(right - left);
+        float height = Mathf.Abs(up - down);
+
+        GameObject.Find(data.constellationName).transform.localScale /= Mathf.Max(width/frameWidth, height/frameHeight);
     }
 
     private void CreateLine(Vector3 startLocal, Vector3 endLocal, Transform parent, float scale)

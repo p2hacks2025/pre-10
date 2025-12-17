@@ -1,5 +1,11 @@
-using UnityEngine;
+using System.Collections.Generic;
 using System.Threading.Tasks;
+using UnityEngine;
+using UnityEngine.UI;
+
+using TMPro;
+
+using Cysharp.Threading.Tasks;
 
 namespace Junya
 {
@@ -7,77 +13,123 @@ namespace Junya
     public class CommentManager : MonoBehaviour
     {
         
-        private async Task Test()
-        {
-            
-            Comment c1 = new("c1");
-            Comment c1_1 = new("c1_1");
-            c1.Attach(ref c1_1);
-            /*Comment c1_2 = new("c1_2");
-            c1.Attach(ref c1_2);
-            Comment c1_3 = new("c1_3");
-            c1.Attach(ref c1_3);
-            Comment c1_1_1 = new("c1_1_1");
-            c1_1.Attach(ref c1_1_1);
-            
-            Debug.Log(c1.GetDescendantsCount());
-            */
-            
-            /*
-            Comment parent = new("parent");
-            parent.gameObject.transform.position = Vector3.up * 5f;
+        /// <summary>
+        /// 
+        /// グロバール変数inputFieldにシーン共通のInputFieldをinspectorからアタッチしてくれ
+        /// 
+        /// AllowWrite関数を呼ぶとInputFieldが選択状態になり、キーボード入力が許可される。
+        /// Send関数が呼ばれた時点でのInputFieldの内容がAllowWrite関数の戻り値として返される。(Update関数内の適切なタイミングでSend関数を呼ぶようにしておく必要がある)
+        /// AllowWrite関数が戻り値を返すまで処理を待ちたいときは、関数の直前にawaitと加えて、関数を呼び出す関数のシグネチャにasyncと加える
+        /// 
+        /// </summary> 
 
-            await Task.Delay(1000);
+        //この変数に共通のInputFieldをアタッチして
+        public TMP_InputField inputField;
 
-            Comment child = new("child");
+        //コメントの最大文字数(デフォルトは60)
+        public const int maxLetter = 60;
 
-            await Task.Delay(1000);
+        //コメント間の間隔
+        public const float interval = 2f;
 
-            parent.Attach(ref child);
-
-            await Task.Delay(1000);
-
-            Comment child2 = new("child2");
-
-            await Task.Delay(1000);
-
-            parent.Attach(ref child2);
-
-            await Task.Delay(1000);
-
-            Comment child3 = new("child3");
-
-            await Task.Delay(1000);
-
-            parent.Attach(ref child3);
-
-            await Task.Delay(1000);
-
-            parent.DeactivateChildren();
-
-            await Task.Delay(1000);
-
-            parent.ActivateChildren();
-            */
-        }
+        //アイコンに使う色のリスト inspectorから割り当て済み
+        public List<Color> iconColors;
 
         public static CommentManager instance;
 
-        public GameObject prefab;
+        //キーボード入力を開始する
+        public static UniTask<string> AllowWrite(int maxLetter) => instance._AllowWrite(maxLetter);
 
-        // Start is called once before the first execution of Update after the MonoBehaviour is created
-        void Start()
+        private async UniTask<string> _AllowWrite(int maxLetter)
         {
+            //選択状態にする
+            inputField.ActivateInputField();
+            
+            //Send関数が呼ばれるまで繰り返し
+            while (!this.sendFlag)
+            {
 
-            instance = GameObject.Find("CommentManager").transform.GetComponent<CommentManager>();
+                if (maxLetter <= inputField.text.Length) inputField.text = inputField.text[0..maxLetter];
 
-            Test();
+                //1フレーム待機
+                await UniTask.Yield();
+            }
+
+            //フラグのリセット
+            this.sendFlag = false;
+
+            //選択状態から外す
+            inputField.DeactivateInputField();
+
+            //InputFieldの内容を返す
+            return inputField.text;
         }
 
-        // Update is called once per frame
-        void Update()
+        //内容の確定
+        public void Send()
         {
+            this.sendFlag = true;
+        }
+        private bool sendFlag;
 
+        /*
+        public static void StartWrite()
+        {
+            instance.StartCoroutine(instance.WriteCoroutine());
+        }
+        
+        private IEnumerator<string> WriteCoroutine()//Allow writing on InputField and return the content the user wrote when the enter key is pressed.
+        {
+            inputField.ActivateInputField();
+
+            while (true)
+            {
+                if (Input.GetKeyDown(KeyCode.Return))
+                {
+                    break;
+                }
+
+                Debug.Log("running");
+                yield return null;
+            }
+
+            Debug.Log(inputField.text);
+
+            yield return inputField.text;
+            this.inputField.DeactivateInputField();
+
+            yield break;
+        }
+        
+        private async Task Test()
+        {
+            
+        }
+        */
+
+        public GameObject prefab;
+
+        Comment test;
+
+        // Start is called once before the first execution of Update after the MonoBehaviour is created
+        async void Start()
+        {
+            instance = GameObject.Find("CommentManager").transform.GetComponent<CommentManager>();
+
+            //(サンプル) この一行は「キーボード入力が開始され、確定されたらその内容をもつコメントを生成する」ということをしてる
+            //new Comment(await AllowWrite());
+            test = new("test");
+
+        }
+
+
+        // Update is called once per frame
+        async void Update()
+        {
+            if (Input.GetKeyDown(KeyCode.R)) await test.AddComment();
+
+            //(サンプル) エンターキーを押したときにInputFieldを確定する場合
+            if (Input.GetKeyDown(KeyCode.Return)) Send();
         }
     }
 
