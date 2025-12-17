@@ -19,13 +19,14 @@ public class ManualConstellationEditor : MonoBehaviour
     [SerializeField] private float minStarScale = 3.0f; // 最小サイズ（大きめに設定）
     [SerializeField] private float maxStarScale = 5.0f; // 最大サイズ
 
-    [Header("操作パラメータ")]
-    //[SerializeField] private float touchRadius = 50f; // 星をタップしたと判定する距離(px)
+    [Header("UIマネージャー")]
+    //[SerializeField] private ManualUIManager uiManager;
 
     // 管理用リスト
     private List<GameObject> myStars = new List<GameObject>(); //星
     private List<LineData> myLines = new List<LineData>();     //線
     private GameObject selectedStar = null; // 今選んでいる星
+    private bool canPutStar = true;
 
     /// <summary>
     /// 線データの定義（このクラスで線と星の関係を覚えます）
@@ -73,6 +74,8 @@ public class ManualConstellationEditor : MonoBehaviour
 
     private void HandleInput()
     {
+        if (!canPutStar) return;
+
         // カーソル位置の取得
         Vector2 screenPos = Pointer.current.position.ReadValue();
 
@@ -256,6 +259,12 @@ public class ManualConstellationEditor : MonoBehaviour
         myStars.Clear();
         myLines.Clear(); // 線リストもクリア
         selectedStar = null;
+    }
+
+    public void OnOKButtonClicked()
+    {
+        canPutStar = false;
+        //uiManager.ShowSettingPanel();
     }
 
     /// <summary>

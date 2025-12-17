@@ -3,6 +3,8 @@ using System.Collections.Generic;
 
 public class SkyProject2D : MonoBehaviour
 {
+    public static SkyProject2D instance; // シングルトン化
+
     [Header("プレハブ")]
     [SerializeField] private GameObject starPrefab;
     [SerializeField] private GameObject linePrefab;
@@ -20,9 +22,17 @@ public class SkyProject2D : MonoBehaviour
     [SerializeField] private float collisionCheckRadius = 10f; // この半径内に他の星座があったら配置し直す
     [SerializeField] private int maxRetryCount = 10; // 配置場所が見つからない時の最大再試行回数
 
+    // 読み込んだ全データをここに保持しておく
+    public ConstellationListWrapper currentWrapper;
+
+    void Awake()
+    {
+        // 他からアクセスできるように自分を登録
+        if (instance == null) instance = this;
+    }
+
     void Start()
     {
-        Debug.Log("【捜査1】SkyProjector2D は起動しました"); // ★ここが出ないならScriptがついてない
         LoadLocalData();
     }
 
@@ -72,6 +82,20 @@ public class SkyProject2D : MonoBehaviour
 
             GenerateConstellationObject(data, spawnPos);
         }
+    }
+
+    public void SaveLocalData()
+    {
+        if (currentWrapper == null) return;
+
+        // 現在のデータをJSONに変換
+        string json = JsonUtility.ToJson(currentWrapper);
+
+        // PlayerPrefsに保存
+        PlayerPrefs.SetString("LocalSaveList", json);
+        PlayerPrefs.Save();
+
+        Debug.Log("【保存完了】データを保存しました: " + json);
     }
 
     // 重ならない位置を探すロジック

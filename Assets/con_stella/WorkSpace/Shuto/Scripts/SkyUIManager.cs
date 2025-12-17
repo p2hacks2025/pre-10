@@ -100,7 +100,7 @@ public class SkyUIManager : UIBaseManager
         SwitchPanel(detailPanel, detailPanelOffset);
     }
 
-    // ★追加: CommentManagerからプレハブと色を取得して生成する共通関数
+    // CommentManagerからプレハブと色を取得して生成する共通関数
     private void CreateCommentObject(Transform root, string text, bool useRandomColor)
     {
         // 1. シングルトンインスタンスを取得 (Junya.CommentManagerと明示)
@@ -189,22 +189,24 @@ public class SkyUIManager : UIBaseManager
 
         string text = replyContentInput.text;
 
-        // 1. コメントデータを作成 (Junya.Commentクラス)
+        // 1. コメントデータを作成
         Comment newComment = new Comment(text);
 
-        // 2. ConstellationData にデータを追加 (Attach修正済み)
+        // 2. データの参照に追加（ここでメモリ上のデータは更新される）
         currentData.Attach(ref newComment);
 
         Debug.Log("返信データ追加完了: " + text);
 
+        // 更新されたデータをファイルに保存する！
+        if (SkyProject2D.instance != null)
+        {
+            SkyProject2D.instance.SaveLocalData();
+        }
+
         // 3. 入力欄クリア
         replyContentInput.text = "";
 
-        // 4. ★詳細画面を再表示する
-        // これにより SwitchPanel が呼ばれ、
-        // ReplyPanel は即座に replyPanelOffset の位置(画面外)へ飛び、
-        // DetailPanel がアニメーションして出てきます。
-        // さらに ShowDetail の中でリストが再生成されるので、自分のコメントが表示されます。
+        // 4. 詳細画面再表示
         ShowDetail(currentData);
     }
 

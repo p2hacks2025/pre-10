@@ -96,7 +96,6 @@ public class PhotoController : MonoBehaviour
             float processSize = 512f;
             float scaleFactor = displayWidth / processSize;
 
-            // ★ここも修正（関数名が変わっています）
             constellationGenerator.GenerateFromContours(contours, scaleFactor);
 
             // アニメーション開始
