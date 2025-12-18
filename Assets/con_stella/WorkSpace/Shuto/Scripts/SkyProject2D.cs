@@ -43,10 +43,10 @@ public class SkyProject2D : MonoBehaviour
 
     void Start()
     {
-        LoadLocalData();
+        //LoadLocalData();
         GenerateSingleStar();
-        // 直前に投稿されたデータがあるかチェックしてカメラを向ける
-        StartCoroutine(FocusOnNewConstellation());
+        //FireBaseから読み込み
+        StartCoroutine(LoadFromCloudSequence());
     }
 
     private System.Collections.IEnumerator FocusOnNewConstellation()
@@ -87,6 +87,51 @@ public class SkyProject2D : MonoBehaviour
                 cameraController.FocusOnTarget(targetObj.transform.position);
             }
         }
+    }
+
+    // クラウド読み込み用コルーチン
+    private System.Collections.IEnumerator LoadFromCloudSequence()
+    {
+        // FirebaseManagerの準備ができるまで少し待つ
+        yield return new WaitForSeconds(1.0f);
+
+        if (FirebaseManager.instance != null)
+        {
+            Debug.Log("【Sky】クラウドからデータ取得を開始...");
+
+            // データの読み込みを依頼
+            FirebaseManager.instance.LoadAllConstellations((List<ConstellationData> dataList) =>
+            {
+                // データが返ってきたら実行される場所
+                OnDataLoaded(dataList);
+                SetupShootingStarListener();
+            });
+        }
+        else
+        {
+            Debug.LogError("FirebaseManagerが見つかりません");
+        }
+    }
+
+    // データ受け取り後の処理
+    private void OnDataLoaded(List<ConstellationData> dataList)
+    {
+        // 既存のラッパーに入れておく（検索などで使うため）
+        if (currentWrapper == null) currentWrapper = new ConstellationListWrapper();
+        currentWrapper.list = dataList;
+
+        Debug.Log($"【Sky】{dataList.Count}個の星座を生成します");
+
+        // 全データを生成
+        foreach (var data in dataList)
+        {
+            // 座標を決めて生成
+            Vector3 spawnPos = FindSafePosition();
+            GenerateConstellationObject(data, spawnPos);
+        }
+
+        // カメラ位置合わせ（投稿直後の演出）
+        StartCoroutine(FocusOnNewConstellation());
     }
 
     public void LoadLocalData()
@@ -174,7 +219,8 @@ public class SkyProject2D : MonoBehaviour
         return new Vector3(Random.Range(-spawnArea.x, spawnArea.x), Random.Range(-spawnArea.y, spawnArea.y), 0);
     }
 
-    public static void StaticGenerate(ConstellationData data, Vector3 position) => GameObject.Find("SkyManager").GetComponent<SkyProject2D>().GenerateConstellationObject(data, position);
+    public static void StaticGenerate(ConstellationData data, Vector3 position) => GameObject.Find("SkyManager").
+        GetComponent<SkyProject2D>().GenerateConstellationObject(data, position);
 
     private void GenerateConstellationObject(ConstellationData data, Vector3 position)
     {
@@ -329,6 +375,25 @@ public class SkyProject2D : MonoBehaviour
         lr.SetPosition(1, endLocal);
         lr.widthMultiplier = baseLineWidth * scale;
         lr.sortingOrder = 90;
+    }
+
+    private void SetupShootingStarListener()
+    {
+        if (FirebaseManager.instance != null)
+        {
+            FirebaseManager.instance.ListenForShootingStars((data) =>
+            {
+                // 自分以外の星が飛んできたら表示
+                // (自分の星はOnPostStarClickedですぐ表示しているので弾いても良い)
+                if (data.senderName != "自分")
+                {
+                    if (ShootingStarManager.instance != null)
+                    {
+                        ShootingStarManager.instance.SpawnStar(data);
+                    }
+                }
+            });
+        }
     }
 
     private void GenerateSingleStar()

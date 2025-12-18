@@ -16,6 +16,8 @@ namespace Junya
     public sealed class Comment : IAttachable
     {
         // 親への参照（データ構造上）
+        //親への参照 (parent)」は、Unityのエディタ表示や保存（シリアライズ）の対象から外す
+        [System.NonSerialized] 
         public IAttachable parent;
 
         // 子コメントのリスト（返信データ）

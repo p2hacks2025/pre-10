@@ -22,6 +22,7 @@ public class ConstellationData : IAttachable
     public string description;
     public List<StarData> stars = new List<StarData>();
     public List<ConnectionData> connections = new List<ConnectionData>();
+    [HideInInspector]
     public Comment root;
     public int likeCount;
     public bool isLiked = false;  //Ç¢Ç¢ÇÀçœÇ›Ç©Ç«Ç§Ç©

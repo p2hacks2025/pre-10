@@ -200,7 +200,9 @@ public class ConstellationGenerator : MonoBehaviour
         }
 
         // 最後にローカル保存を実行
-        SaveToLocal(saveData);
+        //SaveToLocal(saveData);
+        //クラウドに保存
+        SaveToFireBase(saveData);
     }
 
     // データを受け取ってローカルに保存する専用関数
@@ -227,5 +229,15 @@ public class ConstellationGenerator : MonoBehaviour
         PlayerPrefs.Save();
 
         Debug.Log($"星座 '{newData.constellationName}' を保存しました！");
+    }
+
+    private void SaveToFireBase(ConstellationData newData)
+    {
+        if (FirebaseManager.instance != null)
+        {
+            FirebaseManager.instance.SaveConstellation(newData, (success) => {
+                if (success) Debug.Log("【Photo】クラウド保存完了！");
+            });
+        }
     }
 }

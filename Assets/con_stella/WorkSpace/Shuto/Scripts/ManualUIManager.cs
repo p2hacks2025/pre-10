@@ -241,10 +241,14 @@ public class ManualUIManager : UIBaseManager
         data.constellationName = tempConstellationName;
         data.description = description;
 
-        SaveToLocal(data);
+        //SaveToLocal(data);
+        SaveToFireBase(data);
         StartCoroutine(PostSequence(data));
     }
-
+/// <summary>
+///  ローカル保存
+/// </summary>
+/// <param name="newData"></param>
     private void SaveToLocal(ConstellationData newData)
     {
         ConstellationListWrapper wrapper = new ConstellationListWrapper();
@@ -259,6 +263,21 @@ public class ManualUIManager : UIBaseManager
         string newJson = JsonUtility.ToJson(wrapper);
         PlayerPrefs.SetString("LocalSaveList", newJson);
         PlayerPrefs.Save();
+    }
+
+    private void SaveToFireBase(ConstellationData newData)
+    {
+        if (FirebaseManager.instance != null)
+        {
+            // 保存が終わったらログを出す
+            FirebaseManager.instance.SaveConstellation(newData, (success) => {
+                if (success) Debug.Log("【Manual】クラウド保存完了！");
+            });
+        }
+        else
+        {
+            Debug.LogError("FirebaseManagerがいません！");
+        }
     }
 
     private IEnumerator PostSequence(ConstellationData data)

@@ -119,6 +119,50 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
+--- !u!1 &158578506
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 158578507}
+  - component: {fileID: 158578508}
+  m_Layer: 0
+  m_Name: FireBaseManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &158578507
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 158578506}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1908734490}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &158578508
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 158578506}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f3f074b7bd15ea41982aef771f05e08, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FirebaseManager
 --- !u!1 &312839365
 GameObject:
   m_ObjectHideFlags: 0
@@ -429,6 +473,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 8203712910124801879, guid: 15fb15a62dabb7b4584b0360dd8fd949, type: 3}
       insertIndex: -1
       addedObject: {fileID: 312839366}
+    - targetCorrespondingSourceObject: {fileID: 8203712910124801879, guid: 15fb15a62dabb7b4584b0360dd8fd949, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 158578507}
     - targetCorrespondingSourceObject: {fileID: 1288809045366115699, guid: 15fb15a62dabb7b4584b0360dd8fd949, type: 3}
       insertIndex: -1
       addedObject: {fileID: 318964361}

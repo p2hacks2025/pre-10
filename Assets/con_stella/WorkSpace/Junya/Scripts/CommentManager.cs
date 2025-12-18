@@ -112,7 +112,10 @@ namespace Junya
         Comment test;
 
         // Start is called once before the first execution of Update after the MonoBehaviour is created
-        async void Start()
+        /*
+         * ’†‚Å await‚³‚ê‚Ä‚È‚©‚Á‚½‚©‚çAasync‚ğÁ‚µ‚½
+         */
+        void Start()
         {
             instance = GameObject.Find("CommentManager").transform.GetComponent<CommentManager>();
 

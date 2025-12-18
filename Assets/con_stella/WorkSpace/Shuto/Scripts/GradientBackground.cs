@@ -66,7 +66,7 @@ public class GradientBackground : MonoBehaviour
         {
             // パターンA: マップの広さに合わせる (SkyScene)
             case SizeMode.FillMapSize:
-                if (skyCameraCon == null) skyCameraCon = FindObjectOfType<SkyCameraController>();
+                if (skyCameraCon == null) skyCameraCon = FindFirstObjectByType<SkyCameraController>();
 
                 if (skyCameraCon != null)
                 {

@@ -13,7 +13,7 @@
 		}
 
 		void OnDestroy() {
-			SceneManager.UnloadScene ("DocumentScannerScene");
+			SceneManager.UnloadSceneAsync ("DocumentScannerScene");
 		}
 
 		public void OnButton(string name) {
@@ -23,7 +23,7 @@
 		private void NavigateTo(string name) {
 			Scene scene = SceneManager.GetSceneByName ("DocumentScannerScene");
 			if (scene.isLoaded) {
-				DocumentScannerScript script = Object.FindObjectOfType<DocumentScannerScript>();
+				DocumentScannerScript script = Object.FindFirstObjectByType<DocumentScannerScript>();
 				script.Process(name);
 
 //				GameObject gameObject = GameObject.Find("OutputImage");

@@ -123,7 +123,7 @@ public class SkyUIManager : UIBaseManager
         Junya.CommentManager manager = Junya.CommentManager.instance;
 
         // 念のためFindでも探す
-        if (manager == null) manager = FindObjectOfType<Junya.CommentManager>();
+        if (manager == null) manager = FindFirstObjectByType<Junya.CommentManager>();
 
         if (manager == null || manager.prefab == null)
         {
@@ -190,21 +190,26 @@ public class SkyUIManager : UIBaseManager
 
         // すでにいいね済みなら何もしない
         if (currentData.isLiked) return;
-
+        
         // 1. データ更新
         currentData.likeCount++;
         currentData.isLiked = true;
 
         Debug.Log($"【UI】いいねしました: {currentData.constellationName} -> {currentData.likeCount}");
-
-        // 2. UI更新 (即座に反映)
+        
+        //  UI更新 (即座に反映)
         UpdateLikeUI();
+        // クラウド上のいいね数を更新
+        if (FirebaseManager.instance != null)
+        {
+            FirebaseManager.instance.AddLike(currentData.guid, currentData.likeCount);
+        }
 
-        // 3. Bloom更新
+        // Bloom更新
         if (SkyProject2D.instance != null)
         {
             SkyProject2D.instance.UpdateConstellationBloom(currentData);
-            SkyProject2D.instance.SaveLocalData();
+            //SkyProject2D.instance.SaveLocalData();
         }
     }
 
@@ -277,13 +282,18 @@ public class SkyUIManager : UIBaseManager
         currentData.Attach(ref newComment);
 
         Debug.Log("返信データ追加完了: " + text);
-
-        // 更新されたデータをファイルに保存する！
+        /*
+        // 更新されたデータをローカルのファイルに保存する！
         if (SkyProject2D.instance != null)
         {
             SkyProject2D.instance.SaveLocalData();
         }
-
+        */
+        // データ全体をクラウドに上書き保存して更新
+        if (FirebaseManager.instance != null)
+        {
+            FirebaseManager.instance.SaveConstellation(currentData);
+        }
         // 3. 入力欄クリア
         replyContentInput.text = "";
 
@@ -307,9 +317,16 @@ public class SkyUIManager : UIBaseManager
         if (string.IsNullOrEmpty(msg)) return;
 
         ShootingStarData data = new ShootingStarData(msg, "自分");
+        // 1. ローカルで飛ばす（自分の画面用）
         if (ShootingStarManager.instance != null)
         {
             ShootingStarManager.instance.SpawnStar(data);
+        }
+
+        //　クラウドに保存して、他の人の画面にも飛ばす
+        if (FirebaseManager.instance != null)
+        {
+            FirebaseManager.instance.SaveShootingStar(data);
         }
 
         OnCloseButtonClicked();

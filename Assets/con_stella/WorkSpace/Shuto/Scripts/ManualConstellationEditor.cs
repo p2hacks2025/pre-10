@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine.EventSystems;
 using TMPro;
 using System;
+using UnityEngine.InputSystem;
 
 public class ManualConstellationEditor : MonoBehaviour
 {
@@ -59,15 +60,17 @@ public class ManualConstellationEditor : MonoBehaviour
         // ★追加: UIパネルが開いているときは操作を受け付けない
         if (uiManager != null && uiManager.HasActivePanel) return;
 
-        if (Input.GetMouseButtonDown(0))
+        if (Pointer.current != null && Pointer.current.press.wasPressedThisFrame)
         {
             // UIボタン上のクリックは無視
             if (EventSystem.current.IsPointerOverGameObject()) return;
 
+            Vector2 screenPos = Pointer.current.position.ReadValue();
+
             // 描画範囲チェック
             if (constellationRoot != null)
             {
-                if (!RectTransformUtility.RectangleContainsScreenPoint(constellationRoot, Input.mousePosition, mainCamera))
+                if (!RectTransformUtility.RectangleContainsScreenPoint(constellationRoot, screenPos, mainCamera))
                 {
                     return;
                 }
