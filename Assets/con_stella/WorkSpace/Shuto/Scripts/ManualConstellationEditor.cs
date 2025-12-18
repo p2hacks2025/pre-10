@@ -298,7 +298,7 @@ public class ManualConstellationEditor : MonoBehaviour
         foreach (var star in stars)
         {
             if (!star.activeSelf) continue;
-            // ★修正: 距離判定もScreen座標で行うのが安全
+            // 距離判定もScreen座標で行うのが安全
             Vector3 starScreenPos = mainCamera.WorldToScreenPoint(star.transform.position);
             if (Vector2.Distance(screenPos, starScreenPos) <= starClickRadius) return star;
         }
@@ -373,6 +373,36 @@ public class ManualConstellationEditor : MonoBehaviour
         if (stars.Count == 0) guideText.text = "画面をタップして星を配置";
         else if (selectedStar == null) guideText.text = "星を選択、またはタップで配置";
         else guideText.text = "別の星をタップして線を引く";
+    }
+
+    // ★追加: 星が1つでもあるかチェック
+    public bool HasStars => stars.Count > 0;
+    public bool HasConnections => connections.Count > 0;
+    // ★追加: ガイドテキストを使って警告を出す演出
+    public void ShowWarning(string message)
+    {
+        if (guideText != null)
+        {
+            StopCoroutine("ShowWarningRoutine"); // 連打対策
+            StartCoroutine(ShowWarningRoutine(message));
+        }
+    }
+
+    private System.Collections.IEnumerator ShowWarningRoutine(string message)
+    {
+        // 色とテキストを警告用に変更
+        Color originalColor = Color.white; // 通常の色（必要ならInspectorの色変数を使ってください）
+        if (guideText != null) originalColor = guideText.color;
+
+        guideText.color = Color.red;
+        guideText.text = message;
+
+        // 2秒待つ
+        yield return new WaitForSeconds(2.0f);
+
+        // 元に戻す
+        guideText.color = originalColor;
+        UpdateGuideText();
     }
 
     public ConstellationData GetConstellationData()

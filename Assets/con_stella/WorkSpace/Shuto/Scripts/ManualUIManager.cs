@@ -36,6 +36,10 @@ public class ManualUIManager : UIBaseManager
     [Header("Delete Button Settings")]
     [SerializeField] private float longPressDuration = 0.8f;
 
+    [Header("投稿演出")]
+    [SerializeField] private CanvasGroup postMessageCanvasGroup; // 「投稿しました！」のCanvasGroup
+    [SerializeField] private float fadeDuration = 1.5f;          // フェードにかける時間
+
     private bool isDeletingPress = false;
     private float deletePressTimer = 0f;
     private bool longPressTriggered = false;
@@ -163,6 +167,20 @@ public class ManualUIManager : UIBaseManager
     {
         if (currentPanel != null) return;
 
+        // 1. 星がない場合
+        if (!editor.HasStars)
+        {
+            editor.ShowWarning("星が一つもありません！\n画面をタップして星を作ってください");
+            return;
+        }
+
+        // 2. 線がない場合 (★追加)
+        if (!editor.HasConnections)
+        {
+            editor.ShowWarning("線が引かれていません！\n星をつないで星座にしてください");
+            return;
+        }
+
         if (postPanel != null)
         {
             SetupInputState(InputState.Name);
@@ -246,6 +264,38 @@ public class ManualUIManager : UIBaseManager
     private IEnumerator PostSequence(ConstellationData data)
     {
         Debug.Log($"投稿完了: {data.constellationName}");
+        PlayerPrefs.SetString("NextFocusGUID", data.guid);
+        PlayerPrefs.Save();
+        OnCloseButtonClicked();  //パネルを閉じる
+        // ★追加: フェードイン演出
+        if (postMessageCanvasGroup != null)
+        {
+            // まず表示状態にして、完全に透明にする
+            postMessageCanvasGroup.gameObject.SetActive(true);
+            postMessageCanvasGroup.alpha = 0f;
+
+            float timer = 0f;
+
+            // 指定した時間をかけて alpha を 0 から 1 にする
+            while (timer < fadeDuration)
+            {
+                timer += Time.deltaTime;
+                postMessageCanvasGroup.alpha = Mathf.Lerp(0f, 1f, timer / fadeDuration);
+                yield return null; // 1フレーム待つ
+            }
+
+            // 念のため最後に確実に1にする
+            postMessageCanvasGroup.alpha = 1f;
+
+            // 文字が見えきってから少しだけ余韻を持たせる（0.5秒待機）
+            yield return new WaitForSeconds(0.5f);
+        }
+        else
+        {
+            // 設定し忘れたとき用（今まで通りの待機）
+            yield return new WaitForSeconds(1.0f);
+        }
+
         yield return new WaitForSeconds(1.0f);
         SceneManager.LoadScene("SkyScene");
     }
