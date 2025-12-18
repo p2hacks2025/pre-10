@@ -1,412 +1,414 @@
 using UnityEngine;
-using UnityEngine.InputSystem;
-using UnityEngine.EventSystems;
 using System.Collections.Generic;
-using System; // Serializableに必要
+using UnityEngine.EventSystems;
+using TMPro;
+using System;
 
 public class ManualConstellationEditor : MonoBehaviour
 {
-    [Header("設定")]
+    [Header("UI Manager")]
+    // ★追加: パネルが開いているかチェックするために必要
+    [SerializeField] private ManualUIManager uiManager;
+
+    [Header("必要なプレハブ")]
     [SerializeField] private GameObject starPrefab;
     [SerializeField] private GameObject linePrefab;
-    [SerializeField] private Transform workAreaRoot; // 星座を作る親オブジェクト
 
-    [Header("描画範囲の設定")]
-    // このRectTransformの中でしか描けないように制限する
-    [SerializeField] private RectTransform drawingArea;
+    [Header("設定")]
+    // ★重要: 星座を配置する親オブジェクト（Canvas内のRectTransformを指定してください）
+    [SerializeField] private RectTransform constellationRoot;
+    [SerializeField] private Camera mainCamera;
+
+    [SerializeField] private Color selectedColor = Color.yellow;
+    [SerializeField] private Color normalColor = Color.white;
+    [SerializeField] private float starClickRadius = 100f; // 判定広め
 
     [Header("星のサイズ設定")]
-    [SerializeField] private float minStarScale = 3.0f; // 最小サイズ（大きめに設定）
-    [SerializeField] private float maxStarScale = 5.0f; // 最大サイズ
+    [SerializeField] private float minStarScale = 3.0f;
+    [SerializeField] private float maxStarScale = 5.0f;
 
-    [Header("UIマネージャー")]
-    //[SerializeField] private ManualUIManager uiManager;
+    [Header("線の設定")]
+    [SerializeField] private float lineWidth = 2.0f; // 見やすい太さに
 
-    // 管理用リスト
-    private List<GameObject> myStars = new List<GameObject>(); //星
-    private List<LineData> myLines = new List<LineData>();     //線
-    private GameObject selectedStar = null; // 今選んでいる星
-    private bool canPutStar = true;
+    [Header("ガイド表示")]
+    [SerializeField] private TextMeshProUGUI guideText;
 
-    /// <summary>
-    /// 線データの定義（このクラスで線と星の関係を覚えます）
-    /// </summary>
-    private class LineData
+    private List<GameObject> stars = new List<GameObject>();
+    private List<Connection> connections = new List<Connection>();
+    private GameObject selectedStar = null;
+
+    private Stack<ICommand> undoStack = new Stack<ICommand>();
+    private Stack<ICommand> redoStack = new Stack<ICommand>();
+
+    // 内部クラス
+    private class Connection
     {
-        public GameObject lineObject; // 線の実体
-        public GameObject starA;      // つながっている星1
-        public GameObject starB;      // つながっている星2
-
+        public GameObject start;
+        public GameObject end;
+        public GameObject lineObj;
     }
+
+    void Start()
+    {
+        if (mainCamera == null) mainCamera = Camera.main;
+        UpdateGuideText();
+    }
+
     void Update()
     {
-        // 画面タップ（クリック）を検知
-        if (Pointer.current != null && Pointer.current.press.wasPressedThisFrame)
-        {
-            Vector2 screenPos = Pointer.current.position.ReadValue();
+        // ★追加: UIパネルが開いているときは操作を受け付けない
+        if (uiManager != null && uiManager.HasActivePanel) return;
 
-            // 指定した範囲の外なら無視する
-            if (drawingArea != null)
+        if (Input.GetMouseButtonDown(0))
+        {
+            // UIボタン上のクリックは無視
+            if (EventSystem.current.IsPointerOverGameObject()) return;
+
+            // 描画範囲チェック
+            if (constellationRoot != null)
             {
-                // Canvasが "Screen Space - Camera" の場合はカメラを渡す必要がある
-                if (!RectTransformUtility.RectangleContainsScreenPoint(drawingArea, screenPos, Camera.main))
+                if (!RectTransformUtility.RectangleContainsScreenPoint(constellationRoot, Input.mousePosition, mainCamera))
                 {
-                    return; // 範囲外なので何もしない
+                    return;
                 }
             }
 
-            // UI（ボタンなど）の上なら無視する
-            if (IsPointerOverUI())
-            {
-                return;
-            }
-
-            HandleInput();
+            HandleTouch(Input.mousePosition);
         }
     }
 
-    //ボタン上かどうか
-    private bool IsPointerOverUI()
+    private void HandleTouch(Vector3 screenPos)
     {
-        if (EventSystem.current == null) return false;
-        return EventSystem.current.IsPointerOverGameObject();
-    }
+        GameObject clickedStar = FindStarNear(screenPos);
 
-    private void HandleInput()
-    {
-        if (!canPutStar) return;
-
-        // カーソル位置の取得
-        Vector2 screenPos = Pointer.current.position.ReadValue();
-
-        // タップした画面座標を、ワールド座標(Z=0)に変換
-        Vector3 mousePos = new Vector3(screenPos.x, screenPos.y, 10f); // Zはカメラ距離
-        Vector3 worldPos = Camera.main.ScreenToWorldPoint(mousePos);
-        worldPos.z = 0f; // Zは0に固定
-
-        // 近くに既存の星があるかチェック
-        GameObject hitStar = FindNearestStar(worldPos);
-
-        if (hitStar != null)
+        if (clickedStar != null)
         {
-            // --- 星をタップした場合 ---
-            OnTapStar(hitStar);
+            if (selectedStar == null)
+            {
+                SelectStar(clickedStar);
+            }
+            else if (selectedStar == clickedStar)
+            {
+                DeselectStar();
+            }
+            else
+            {
+                ExecuteCommand(new AddConnectionCommand(this, selectedStar, clickedStar));
+                SelectStar(clickedStar); // 連続入力のため
+            }
         }
         else
         {
-            // --- 何もない場所をタップした場合 ---
-            CreateStar(worldPos);
+            // ★修正: ワールド座標ではなく、RectTransform内のローカル座標に変換する
+            Vector2 localPoint;
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                constellationRoot,
+                screenPos,
+                mainCamera,
+                out localPoint
+            );
+
+            // Z=0にする
+            Vector3 finalPos = new Vector3(localPoint.x, localPoint.y, 0f);
+
+            ExecuteCommand(new AddStarCommand(this, finalPos));
         }
     }
 
-    // 近くの星を探す関数
-    private GameObject FindNearestStar(Vector3 pos)
-    {
-        GameObject nearest = null;
-        float minDist = float.MaxValue;
+    // ================================================================================
+    // コマンド
+    // ================================================================================
 
-        foreach (var star in myStars)
+    private interface ICommand { void Execute(); void Undo(); }
+
+    private void ExecuteCommand(ICommand command)
+    {
+        command.Execute();
+        undoStack.Push(command);
+        redoStack.Clear();
+        UpdateGuideText();
+    }
+
+    private class AddStarCommand : ICommand
+    {
+        private ManualConstellationEditor editor;
+        private Vector3 localPosition; // ローカル座標
+        private GameObject createdStar;
+
+        public AddStarCommand(ManualConstellationEditor editor, Vector3 localPos)
         {
-            float dist = Vector3.Distance(pos, star.transform.position);
-            // スクリーン座標ではなくワールド座標での距離判定になるので注意
-            // ここでは簡易的に判定
-            if (dist < 1.0f) // 判定範囲（適宜調整）
+            this.editor = editor;
+            this.localPosition = localPos;
+        }
+
+        public void Execute()
+        {
+            if (createdStar == null)
             {
-                if (dist < minDist)
-                {
-                    minDist = dist;
-                    nearest = star;
-                }
+                // ★修正: constellationRootの子として生成
+                createdStar = Instantiate(editor.starPrefab, editor.constellationRoot);
+                createdStar.transform.localPosition = localPosition;
+                createdStar.transform.localRotation = Quaternion.identity;
+
+                float randomScale = UnityEngine.Random.Range(editor.minStarScale, editor.maxStarScale);
+                createdStar.transform.localScale = Vector3.one * randomScale;
+            }
+            else
+            {
+                createdStar.SetActive(true);
+            }
+            editor.stars.Add(createdStar);
+            editor.SelectStar(createdStar);
+        }
+
+        public void Undo()
+        {
+            editor.stars.Remove(createdStar);
+            createdStar.SetActive(false);
+            if (editor.selectedStar == createdStar) editor.DeselectStar();
+        }
+    }
+
+    private class AddConnectionCommand : ICommand
+    {
+        private ManualConstellationEditor editor;
+        private GameObject start, end;
+        private Connection createdConnection;
+
+        public AddConnectionCommand(ManualConstellationEditor editor, GameObject start, GameObject end)
+        {
+            this.editor = editor;
+            this.start = start;
+            this.end = end;
+        }
+
+        public void Execute()
+        {
+            if (editor.IsConnected(start, end)) return;
+
+            if (createdConnection == null)
+            {
+                // ★修正: constellationRootの子として生成
+                GameObject lineObj = Instantiate(editor.linePrefab, editor.constellationRoot);
+                createdConnection = new Connection { start = start, end = end, lineObj = lineObj };
+                editor.UpdateLinePosition(createdConnection);
+            }
+            else
+            {
+                createdConnection.lineObj.SetActive(true);
+                editor.UpdateLinePosition(createdConnection);
+            }
+            editor.connections.Add(createdConnection);
+        }
+
+        public void Undo()
+        {
+            if (createdConnection == null) return;
+            editor.connections.Remove(createdConnection);
+            if (createdConnection.lineObj != null) createdConnection.lineObj.SetActive(false);
+        }
+    }
+
+    // 削除系コマンドは変更なしのため省略せず記述
+    private class DeleteStarCommand : ICommand
+    {
+        private ManualConstellationEditor editor;
+        private GameObject targetStar;
+        private List<Connection> relatedConnections = new List<Connection>();
+
+        public DeleteStarCommand(ManualConstellationEditor editor, GameObject target)
+        {
+            this.editor = editor;
+            this.targetStar = target;
+        }
+
+        public void Execute()
+        {
+            relatedConnections.Clear();
+            foreach (var conn in editor.connections)
+            {
+                if (conn.start == targetStar || conn.end == targetStar) relatedConnections.Add(conn);
+            }
+            foreach (var conn in relatedConnections)
+            {
+                conn.lineObj.SetActive(false);
+                editor.connections.Remove(conn);
+            }
+            targetStar.SetActive(false);
+            editor.stars.Remove(targetStar);
+            if (editor.selectedStar == targetStar) editor.DeselectStar();
+        }
+
+        public void Undo()
+        {
+            targetStar.SetActive(true);
+            editor.stars.Add(targetStar);
+            foreach (var conn in relatedConnections)
+            {
+                conn.lineObj.SetActive(true);
+                editor.connections.Add(conn);
             }
         }
-        return nearest;
     }
 
-    // 星を作って配置
-    private void CreateStar(Vector3 pos)
+    private class DeleteAllCommand : ICommand
     {
-        GameObject newStar = Instantiate(starPrefab, workAreaRoot);
-        newStar.transform.position = pos;
-        //設定した範囲内でランダムな大きさを適用
-        float randomScale = UnityEngine.Random.Range(minStarScale, maxStarScale);
-        newStar.transform.localScale = Vector3.one * randomScale;
-        myStars.Add(newStar);
+        private ManualConstellationEditor editor;
+        private List<GameObject> deletedStars;
+        private List<Connection> deletedConnections;
 
-        // 作った星を自動選択する
-        SelectStar(newStar);
-    }
+        public DeleteAllCommand(ManualConstellationEditor editor) { this.editor = editor; }
 
-    // 星をタップした時の処理
-    private void OnTapStar(GameObject star)
-    {
-        if (selectedStar == null)
+        public void Execute()
         {
-            // 選択されていないなら選択する
-            SelectStar(star);
+            deletedStars = new List<GameObject>(editor.stars);
+            deletedConnections = new List<Connection>(editor.connections);
+            foreach (var conn in deletedConnections) conn.lineObj.SetActive(false);
+            editor.connections.Clear();
+            foreach (var star in deletedStars) star.SetActive(false);
+            editor.stars.Clear();
+            editor.DeselectStar();
         }
-        else if (selectedStar == star)
+
+        public void Undo()
         {
-            // 同じ星なら選択解除
-            DeselectStar();
-        }
-        else
-        {
-            // 違う星なら「線を引く」！
-            CreateLine(selectedStar, star);
-            // 連続で線を引けるように、今の星を選択状態にする
-            SelectStar(star);
+            foreach (var star in deletedStars) { star.SetActive(true); editor.stars.Add(star); }
+            foreach (var conn in deletedConnections) { conn.lineObj.SetActive(true); editor.connections.Add(conn); }
         }
     }
 
-    // 線を引く
-    private void CreateLine(GameObject starA, GameObject starB)
+    // ================================================================================
+    // Public Methods
+    // ================================================================================
+
+    public void Undo() { if (undoStack.Count > 0) { ICommand cmd = undoStack.Pop(); cmd.Undo(); redoStack.Push(cmd); UpdateGuideText(); } }
+    public void Redo() { if (redoStack.Count > 0) { ICommand cmd = redoStack.Pop(); cmd.Execute(); undoStack.Push(cmd); UpdateGuideText(); } }
+    public bool CanUndo => undoStack.Count > 0;
+    public bool CanRedo => redoStack.Count > 0;
+
+    public void DeleteSelected() { if (selectedStar != null) ExecuteCommand(new DeleteStarCommand(this, selectedStar)); }
+    public void DeleteAll() { if (stars.Count > 0) ExecuteCommand(new DeleteAllCommand(this)); }
+
+    // ================================================================================
+    // Helper Methods
+    // ================================================================================
+
+    private GameObject FindStarNear(Vector3 screenPos)
     {
-        // 既に同じ線があるかチェック（二重線防止）
-        if (HasConnection(starA, starB)) return;
-
-        GameObject newLine = Instantiate(linePrefab, workAreaRoot);
-        LineRenderer lr = newLine.GetComponent<LineRenderer>();
-
-        // 線の設定
-        lr.positionCount = 2;
-        lr.useWorldSpace = true; // ここではWorldSpaceの方が管理しやすい
-        lr.SetPosition(0, starA.transform.position);
-        lr.SetPosition(1, starB.transform.position);
-        lr.sortingOrder = 90;
-
-        // リストに「この線はAとBをつないでいる」と記録する
-        LineData data = new LineData();
-        data.lineObject = newLine;
-        data.starA = starA;
-        data.starB = starB;
-        myLines.Add(data);
-    }
-
-    // 既に繋がっているかチェックする便利関数
-    private bool HasConnection(GameObject a, GameObject b)
-    {
-        foreach (var line in myLines)
+        foreach (var star in stars)
         {
-            if ((line.starA == a && line.starB == b) || (line.starA == b && line.starB == a))
-            {
-                return true;
-            }
+            if (!star.activeSelf) continue;
+            // ★修正: 距離判定もScreen座標で行うのが安全
+            Vector3 starScreenPos = mainCamera.WorldToScreenPoint(star.transform.position);
+            if (Vector2.Distance(screenPos, starScreenPos) <= starClickRadius) return star;
         }
-        return false;
+        return null;
     }
 
-    // 選択状態の見た目変更
     private void SelectStar(GameObject star)
     {
-        DeselectStar(); // 前の選択を解除
+        if (selectedStar != null) SetStarColor(selectedStar, normalColor);
         selectedStar = star;
-        // 色を赤くするなど（SpriteRendererを取得して色変更）
-        var renderer = star.GetComponent<SpriteRenderer>();
-        if (renderer != null) renderer.color = Color.red;
+        SetStarColor(star, selectedColor);
+        UpdateGuideText();
     }
 
     private void DeselectStar()
     {
-        if (selectedStar != null)
+        if (selectedStar != null) { SetStarColor(selectedStar, normalColor); selectedStar = null; }
+        UpdateGuideText();
+    }
+
+    private void SetStarColor(GameObject star, Color color)
+    {
+        if (star != null)
         {
-            // 色を白に戻す
-            var renderer = selectedStar.GetComponent<SpriteRenderer>();
-            if (renderer != null) renderer.color = Color.white;
-            selectedStar = null;
+            var sr = star.GetComponent<SpriteRenderer>();
+            if (sr != null) sr.color = color;
         }
     }
 
-    /// <summary>
-    /// 選択中の星と、それにつながる線を削除する（ボタン用）
-    /// </summary>
-    public void ClearSelectedStar()
+    private bool IsConnected(GameObject star1, GameObject star2)
     {
-        if (selectedStar == null) return;
-
-        GameObject targetStar = selectedStar;
-
-        // 1. この星につながっている線を全て探して削除
-        // リストを逆順に回して削除していく（ループ中の削除対策）
-        for (int i = myLines.Count - 1; i >= 0; i--)
+        foreach (var conn in connections)
         {
-            LineData line = myLines[i];
+            if ((conn.start == star1 && conn.end == star2) || (conn.start == star2 && conn.end == star1)) return true;
+        }
+        return false;
+    }
 
-            // 星A か 星B のどちらかが削除対象なら、この線も道連れにする
-            if (line.starA == targetStar || line.starB == targetStar)
+    // アクセス修飾子を修正済み
+    private void UpdateLinePosition(Connection conn)
+    {
+        if (conn.lineObj != null)
+        {
+            LineRenderer lr = conn.lineObj.GetComponent<LineRenderer>();
+            if (lr != null)
             {
-                if (line.lineObject != null) Destroy(line.lineObject);
-                myLines.RemoveAt(i);
-            }
-        }
+                // ★修正: Canvas内で動くため、WorldSpaceはOFFにする
+                lr.useWorldSpace = false;
 
-        // 2. 星自体を削除
-        if (myStars.Contains(targetStar))
-        {
-            myStars.Remove(targetStar);
-        }
-        Destroy(targetStar);
+                lr.sortingOrder = 90;
+                lr.positionCount = 2;
 
-        // 3. 選択状態を解除
-        selectedStar = null;
-    }
+                // 親(constellationRoot)からのローカル座標を使う
+                Vector3 startPos = conn.start.transform.localPosition;
+                Vector3 endPos = conn.end.transform.localPosition;
 
-    /// <summary>
-    /// 全消去機能（ボタン用）
-    /// </summary>
-    public void ClearAll()
-    {
-        foreach (Transform child in workAreaRoot) Destroy(child.gameObject);
-        myStars.Clear();
-        myLines.Clear(); // 線リストもクリア
-        selectedStar = null;
-    }
+                startPos.z = 0f;
+                endPos.z = 0f;
 
-    public void OnOKButtonClicked()
-    {
-        canPutStar = false;
-        //uiManager.ShowSettingPanel();
-    }
+                lr.SetPosition(0, startPos);
+                lr.SetPosition(1, endPos);
 
-    /// <summary>
-    /// 【テスト用】現在の星座をJSONにしてローカル保存（PlayerPrefs）
-    /// </summary>
-    public void TestSaveLocal()
-    {
-        // 1. 保存用データの器を作る
-        ConstellationData newData = new ConstellationData();
-        newData.constellationName = "Manual Constellation";
-        newData.createdAt = System.DateTime.Now.ToString();
-        //newData.likeCount = 0;
-        //newData.commentRoot = new CommentNode("ROOT");
-
-        // 2. 星を保存データに変換 & ID割り振り
-        // 「GameObject」と「ID(0,1,2...)」の対応表を作る
-        Dictionary<GameObject, int> objToIdMap = new Dictionary<GameObject, int>();
-        int currentId = 0;
-
-        foreach (var starObj in myStars)
-        {
-            if (starObj == null) continue;
-
-            StarData sData = new StarData();
-            sData.id = currentId;
-            // 親オブジェクト(workAreaRoot)からの相対座標で保存するのが安全
-            sData.x = starObj.transform.localPosition.x;
-            sData.y = starObj.transform.localPosition.y;
-            sData.scale = starObj.transform.localScale.x;
-
-            newData.stars.Add(sData);
-
-            // マップに記録
-            objToIdMap[starObj] = currentId;
-            currentId++;
-        }
-
-        // 3. 線を保存データに変換
-        foreach (var line in myLines)
-        {
-            if (line.lineObject == null) continue;
-
-            // 両端の星が正しくID管理されているかチェック
-            if (objToIdMap.ContainsKey(line.starA) && objToIdMap.ContainsKey(line.starB))
-            {
-                ConnectionData cData = new ConnectionData();
-                cData.fromStarId = objToIdMap[line.starA];
-                cData.toStarId = objToIdMap[line.starB];
-                newData.connections.Add(cData);
-            }
-        }
-
-        ConstellationListWrapper wrapper = new ConstellationListWrapper();
-        if (PlayerPrefs.HasKey("LocalSaveList"))
-        {
-            string json = PlayerPrefs.GetString("LocalSaveList");
-            wrapper = JsonUtility.FromJson<ConstellationListWrapper>(json);
-        }
-
-        // 2. リストに追加
-        wrapper.list.Add(newData);
-
-        // 3. 保存
-        string newJson = JsonUtility.ToJson(wrapper);
-        PlayerPrefs.SetString("LocalSaveList", newJson);
-        PlayerPrefs.Save();
-
-        Debug.Log($"手書き星座をリストに追加保存しました！(全{wrapper.list.Count}件)");
-    }
-
-    /// <summary>
-    /// 【テスト用】ローカル保存されたJSONを読み込んで復元
-    /// </summary>
-    public void TestLoadLocal()
-    {
-        // 1. 保存データがあるか確認
-        if (!PlayerPrefs.HasKey("TestSaveData"))
-        {
-            Debug.LogWarning("保存されたデータがありません");
-            return;
-        }
-
-        // 2. JSONを取得してクラスに復元
-        string json = PlayerPrefs.GetString("TestSaveData");
-        Debug.Log("【JSON読み込み】\n" + json);
-
-        ConstellationData loadedData = JsonUtility.FromJson<ConstellationData>(json);
-
-        // 3. 画面をクリアして再構築開始
-        ClearAll();
-
-        // 復元用の「ID -> 生成されたGameObject」対応表
-        Dictionary<int, GameObject> idToObjMap = new Dictionary<int, GameObject>();
-
-        // 星を復元
-        foreach (var sData in loadedData.stars)
-        {
-            GameObject newStar = Instantiate(starPrefab, workAreaRoot);
-            newStar.transform.localPosition = new Vector3(sData.x, sData.y, 0);
-            newStar.transform.localScale = Vector3.one * sData.scale;
-
-            myStars.Add(newStar);
-
-            // IDと実体を紐付ける
-            idToObjMap[sData.id] = newStar;
-        }
-
-        // 線を復元
-        foreach (var cData in loadedData.connections)
-        {
-            if (idToObjMap.ContainsKey(cData.fromStarId) && idToObjMap.ContainsKey(cData.toStarId))
-            {
-                GameObject starA = idToObjMap[cData.fromStarId];
-                GameObject starB = idToObjMap[cData.toStarId];
-
-                // 既存の線引きメソッドを使って線を引く
-                // （CreateLine関数は既存のコードにある前提）
-                CreateLineUsingExistingLogic(starA, starB);
+                lr.startWidth = lineWidth;
+                lr.endWidth = lineWidth;
             }
         }
     }
 
-    // CreateLineはprivateかもしれないので、ロード用のラップ関数か、
-    // 既存のCreateLineをpublic/internalにするか、同じ処理を書く
-    private void CreateLineUsingExistingLogic(GameObject starA, GameObject starB)
+    private void UpdateGuideText()
     {
-        // 前回のCreateLineの中身と同じ処理
-        GameObject newLine = Instantiate(linePrefab, workAreaRoot);
-        LineRenderer lr = newLine.GetComponent<LineRenderer>();
-        if (lr != null)
+        if (guideText == null) return;
+        if (stars.Count == 0) guideText.text = "画面をタップして星を配置";
+        else if (selectedStar == null) guideText.text = "星を選択、またはタップで配置";
+        else guideText.text = "別の星をタップして線を引く";
+    }
+
+    public ConstellationData GetConstellationData()
+    {
+        ConstellationData data = new ConstellationData();
+        data.createdAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+
+        Dictionary<GameObject, int> objToId = new Dictionary<GameObject, int>();
+        int newIdCounter = 0;
+
+        foreach (var starObj in stars)
         {
-            lr.positionCount = 2;
-            lr.useWorldSpace = true;
-            lr.SetPosition(0, starA.transform.position);
-            lr.SetPosition(1, starB.transform.position);
-            lr.sortingOrder = 90;
+            if (!starObj.activeSelf) continue;
+            int id = newIdCounter++;
+            objToId[starObj] = id;
+            data.stars.Add(new StarData
+            {
+                id = id,
+                // ★重要: UIのローカル座標(Pixel単位)を保存する
+                x = starObj.transform.localPosition.x,
+                y = starObj.transform.localPosition.y,
+                scale = starObj.transform.localScale.x
+            });
         }
 
-        LineData data = new LineData();
-        data.lineObject = newLine;
-        data.starA = starA;
-        data.starB = starB;
-        myLines.Add(data);
+        foreach (var conn in connections)
+        {
+            if (objToId.ContainsKey(conn.start) && objToId.ContainsKey(conn.end))
+            {
+                data.connections.Add(new ConnectionData
+                {
+                    fromStarId = objToId[conn.start],
+                    toStarId = objToId[conn.end]
+                });
+            }
+        }
+        return data;
     }
 }

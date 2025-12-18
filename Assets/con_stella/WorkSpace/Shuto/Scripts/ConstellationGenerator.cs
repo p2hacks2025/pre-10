@@ -214,11 +214,14 @@ public class ConstellationGenerator : MonoBehaviour
             wrapper = JsonUtility.FromJson<ConstellationListWrapper>(json);
         }
 
+<<<<<<< HEAD
         // ÉäÉXÉgÇ…í«â¡
 
         //wrapper ??= new();
         wrapper.list ??= new();
 
+=======
+>>>>>>> 7e68e0d8fdf2f82d87fb2d00c6d82b96302c29f6
         wrapper.list.Add(newData);
 
         // JSONÇ…ÇµÇƒï€ë∂
@@ -228,5 +231,4 @@ public class ConstellationGenerator : MonoBehaviour
 
         Debug.Log($"êØç¿ '{newData.constellationName}' Çï€ë∂ÇµÇ‹ÇµÇΩÅI");
     }
-
 }
