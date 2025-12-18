@@ -64,4 +64,18 @@ public class UIBaseManager : MonoBehaviour
 
         currentPanel.anchoredPosition = targetPos;
     }
+
+    // InputFieldを選択状態にするコルーチン
+    protected IEnumerator AutoSelectInputField(TMP_InputField targetField)
+    {
+        // パネルが表示される(SetActiveなど)のを1フレーム待つ
+        yield return null;
+
+        if (targetField != null)
+        {
+            // 強制的にアクティブ化して選択
+            targetField.ActivateInputField();
+            targetField.Select();
+        }
+    }
 }

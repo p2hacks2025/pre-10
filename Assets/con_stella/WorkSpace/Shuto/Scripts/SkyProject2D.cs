@@ -43,9 +43,50 @@ public class SkyProject2D : MonoBehaviour
 
     void Start()
     {
-        CheckSavedData();
         LoadLocalData();
         GenerateSingleStar();
+        // 直前に投稿されたデータがあるかチェックしてカメラを向ける
+        StartCoroutine(FocusOnNewConstellation());
+    }
+
+    private System.Collections.IEnumerator FocusOnNewConstellation()
+    {
+        // 1. キーがあるか確認
+        if (PlayerPrefs.HasKey("NextFocusGUID"))
+        {
+            string targetGuid = PlayerPrefs.GetString("NextFocusGUID");
+
+            // 読み終わったらすぐ消す（次回以降は反応させないため）
+            PlayerPrefs.DeleteKey("NextFocusGUID");
+            PlayerPrefs.Save();
+
+            // 生成などが完全に終わるまで少し待つ（念のため）
+            yield return null;
+
+            // 2. GUID名でオブジェクトを探す
+            // (前回の修正でオブジェクト名をGUIDにしている前提です)
+            GameObject targetObj = GameObject.Find(targetGuid);
+
+            // 見つからなければ名前でも探してみる（古いデータ対策）
+            if (targetObj == null)
+            {
+                // currentWrapperから該当データをデータ検索
+                var data = currentWrapper.list.Find(x => x.guid == targetGuid);
+                if (data != null)
+                {
+                    targetObj = GameObject.Find(data.constellationName);
+                }
+            }
+
+            // 3. カメラを移動させる
+            if (targetObj != null && cameraController != null)
+            {
+                Debug.Log($"【カメラ移動】ターゲット発見: {targetObj.name} 位置: {targetObj.transform.position}");
+
+                // カメラコントローラーに移動命令を出す
+                cameraController.FocusOnTarget(targetObj.transform.position);
+            }
+        }
     }
 
     public void LoadLocalData()
@@ -148,7 +189,8 @@ public class SkyProject2D : MonoBehaviour
             Debug.LogWarning("※ SkyRoot がセットされていません（生成はされますが整理されません）");
         }
 
-        GameObject rootObj = new GameObject(data.constellationName);
+        string objectName = string.IsNullOrEmpty(data.guid) ? data.constellationName : data.guid;
+        GameObject rootObj = new GameObject(objectName);
         if (skyRoot != null) rootObj.transform.SetParent(skyRoot);
         rootObj.transform.localPosition = position;
 
@@ -213,7 +255,13 @@ public class SkyProject2D : MonoBehaviour
         float width = Mathf.Abs(right - left);
         float height = Mathf.Abs(up - down);
 
-        GameObject.Find(data.constellationName).transform.localScale /= Mathf.Max(width/frameWidth, height/frameHeight);
+        string targetName = string.IsNullOrEmpty(data.guid) ? data.constellationName : data.guid;
+        GameObject targetObj = GameObject.Find(targetName);
+
+        if (targetObj != null)
+        {
+            targetObj.transform.localScale /= Mathf.Max(width / frameWidth, height / frameHeight);
+        }
     }
 
     private void CreateLine(Vector3 startLocal, Vector3 endLocal, Transform parent, float scale)
@@ -273,8 +321,15 @@ public class SkyProject2D : MonoBehaviour
     public void UpdateConstellationBloom(ConstellationData data)
     {
         if (skyRoot == null) return;
-        Transform targetTransform = skyRoot.Find(data.constellationName);
-        if (targetTransform == null) return;
+
+        string targetName = string.IsNullOrEmpty(data.guid) ? data.constellationName : data.guid;
+
+        Transform targetTransform = skyRoot.Find(targetName);
+        if (targetTransform == null)
+        {
+            Debug.LogWarning($"オブジェクトが見つかりません: {targetName}");
+            return;
+        }
 
         // 計算: いいね数が多いほど値が大きくなる (例: 1.0 -> 1.2 -> 1.4 ...)
         float intensity = baseIntensity + (data.likeCount * intensityPerLike);
@@ -291,7 +346,7 @@ public class SkyProject2D : MonoBehaviour
             starSprite.color = hdrColor;
         }
 
-        Debug.Log($"[{data.constellationName}] Bloom強度更新: {intensity}");
+        Debug.Log($"[{targetName}] Bloom強度更新: {intensity}");
     }
     void CheckSavedData()
     {

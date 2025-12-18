@@ -214,7 +214,7 @@ public class SkyCameraController : MonoBehaviour
         transform.position = pos;
     }
 
-    // ★修正: 滑らかにターゲットへ移動する機能
+    // 滑らかにターゲットへ移動する機能
     public void FocusOnTarget(Vector3 targetPos)
     {
         // ターゲット位置の制限計算
