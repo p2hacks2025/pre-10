@@ -5,27 +5,68 @@ public class MyPageManager : MonoBehaviour
 {
     public GameObject prefab;
     public static MyPageManager instance;
-    public static Dictionary<string, ConstellationData> MyCollections { get; private set; }
 
-    private const int lineLength = 3;
+    private static List<ConstellationData> MyConstellations;
 
-    private ConstellationData this[int ]
+    private static List<Frame> frames;
+
+    public int lineLength;
+
+    public Vector3 scale;
+
+    public int scrollSpeed;
+
+    private Vector3 GetAnchor(ConstellationData data)
+    {
+        float x = (MyConstellations.IndexOf(data) % lineLength) * scale.x;
+        float y = -(MyConstellations.IndexOf(data) / lineLength) * scale.y;
+
+        return new(x, y, 0);
+    }
+
+    private void Locate()
+    {
+        Vector3 criterion = MyPageManager.instance.transform.position;
+
+        for (int i = 0; i < frames.Count; ++i)
+        {
+            frames[i].gameObject.transform.position = criterion + GetAnchor(frames[i].data);
+        }
+        
+    }
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
         instance = this;
-        MyCollections = GetLocalData();
 
+        MyConstellations = GetLocalData();
+
+        frames = new();
+        for(int i = 0; i < MyConstellations.Count; ++i)
+        {
+            frames.Add(new Frame(MyConstellations[i]));
+        }
+
+        Locate();//optimize locations of frames given their indexes
+
+        foreach(Frame frame in frames)
+        {
+            SkyProject2D.StaticGenerate(frame.data, frame.gameObject.transform.Find("Scaler").Find("Anchor").position);
+
+            frame.OptimizeConstellationScale();
+        }
     }
 
     // Update is called once per frame
     void Update()
     {
-
+        var tmp = Camera.main.transform.position;
+        tmp.y += Input.GetAxis("Mouse ScrollWheel") * scrollSpeed;
+        Camera.main.transform.position = tmp;
     }
 
-    private Dictionary<string, ConstellationData> GetLocalData()
+    private List<ConstellationData> GetLocalData()
     {
         // 1. キーがあるか確認
         if (!PlayerPrefs.HasKey("LocalSaveList"))
@@ -61,15 +102,13 @@ public class MyPageManager : MonoBehaviour
 
         Debug.Log($"【捜査3】{wrapper.list.Count} 件のデータを確認。生成を開始します...");
 
-        Dictionary<string, ConstellationData> result = new();
 
-        foreach(ConstellationData data in wrapper.list)
-        {
-            result.Add(data.constellationName, data);
-
-            Debug.Log(data.constellationName);
-        }
-
-        return result;
+        return wrapper.list;
     }
 }
+
+
+/*
+string name = data.constellationName;
+while (GameObject.Find(name) != null) name += "_";
+*/

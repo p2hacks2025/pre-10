@@ -132,7 +132,7 @@ public class SkyProject2D : MonoBehaviour
         return new Vector3(Random.Range(-spawnArea.x, spawnArea.x), Random.Range(-spawnArea.y, spawnArea.y), 0);
     }
 
-    public static void StaticGenerate(ConstellationData data, Vector3 position) => new GameObject().transform.GetComponent<SkyProject2D>().GenerateConstellationObject(data, position);
+    public static void StaticGenerate(ConstellationData data, Vector3 position) => GameObject.Find("SkyManager").GetComponent<SkyProject2D>().GenerateConstellationObject(data, position);
 
     private void GenerateConstellationObject(ConstellationData data, Vector3 position)
     {

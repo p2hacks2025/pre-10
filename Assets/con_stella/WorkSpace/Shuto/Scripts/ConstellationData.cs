@@ -81,4 +81,5 @@ public class ConnectionData
 public class ConstellationListWrapper
 {
     public List<ConstellationData> list;
+
 }

@@ -215,6 +215,10 @@ public class ConstellationGenerator : MonoBehaviour
         }
 
         // ƒŠƒXƒg‚É’Ç‰Á
+
+        //wrapper ??= new();
+        wrapper.list ??= new();
+
         wrapper.list.Add(newData);
 
         // JSON‚É‚µ‚Ä•Û‘¶
