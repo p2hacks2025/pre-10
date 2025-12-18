@@ -3,15 +3,22 @@ using System.Collections.Generic;
 
 public class SkyProject2D : MonoBehaviour
 {
+    public static SkyProject2D instance; // シングルトン化
+
     [Header("プレハブ")]
     [SerializeField] private GameObject starPrefab;
     [SerializeField] private GameObject linePrefab;
     [SerializeField] private Transform skyRoot;
 
     [Header("配置設定")]
+    [SerializeField] private int starAmount = 200;
     [SerializeField] private Vector2 spawnArea = new Vector2(60f, 60f);
     [SerializeField] private float maxDisplayScale = 0.05f;
     [SerializeField] private float minDisplayScale = 0.01f;
+    [SerializeField] private float minSingleStarSize = 0.5f;
+    [SerializeField] private float maxSingleStarSize = 1.5f;
+    [SerializeField] private float minBgStarBrightness = 0.5f; // 暗め
+    [SerializeField] private float maxBgStarBrightness = 1.5f; // 少し光る
     [SerializeField] private float baseLineWidth = 2.0f;
 
     [Header("UI連携")]
@@ -20,10 +27,24 @@ public class SkyProject2D : MonoBehaviour
     [SerializeField] private float collisionCheckRadius = 10f; // この半径内に他の星座があったら配置し直す
     [SerializeField] private int maxRetryCount = 10; // 配置場所が見つからない時の最大再試行回数
 
+    [Header("いいね演出 (Bloom用HDR設定)")]
+    [SerializeField] private float baseIntensity = 1.0f;     // 通常時の明るさ (1.0 = そのまま)
+    [SerializeField] private float intensityPerLike = 0.2f;  // 1いいねごとの加算値
+    [SerializeField] private float maxIntensity = 4.0f;      // 明るさの限界値
+
+    // 読み込んだ全データをここに保持しておく
+    public ConstellationListWrapper currentWrapper;
+
+    void Awake()
+    {
+        // 他からアクセスできるように自分を登録
+        if (instance == null) instance = this;
+    }
+
     void Start()
     {
-        Debug.Log("【捜査1】SkyProjector2D は起動しました"); // ★ここが出ないならScriptがついてない
         LoadLocalData();
+        GenerateSingleStar();
     }
 
     public void LoadLocalData()
@@ -46,24 +67,24 @@ public class SkyProject2D : MonoBehaviour
         Debug.Log("【捜査2】JSONデータを発見: " + json);
 
         // 3. リストに復元できるか確認
-        ConstellationListWrapper wrapper = JsonUtility.FromJson<ConstellationListWrapper>(json);
+        currentWrapper = JsonUtility.FromJson<ConstellationListWrapper>(json);
 
-        if (wrapper == null)
+        if (currentWrapper == null)
         {
             Debug.LogError("【捜査エラー】JSONの解析に失敗しました。データが壊れています。");
             return;
         }
 
-        if (wrapper.list == null || wrapper.list.Count == 0)
+        if (currentWrapper.list == null || currentWrapper.list.Count == 0)
         {
             Debug.LogError("【捜査エラー】リストの中身が空っぽ(0件)です！保存処理がうまくいっていません。");
             return;
         }
 
-        Debug.Log($"【捜査3】{wrapper.list.Count} 件のデータを確認。生成を開始します...");
+        Debug.Log($"【捜査3】{currentWrapper.list.Count} 件のデータを確認。生成を開始します...");
 
         // 4. 生成ループ
-        foreach (var data in wrapper.list)
+        foreach (var data in currentWrapper.list)
         {
             // 位置を決める
             float randomX = Random.Range(-spawnArea.x, spawnArea.x);
@@ -72,6 +93,20 @@ public class SkyProject2D : MonoBehaviour
 
             GenerateConstellationObject(data, spawnPos);
         }
+    }
+
+    public void SaveLocalData()
+    {
+        if (currentWrapper == null) return;
+
+        // 現在のデータをJSONに変換
+        string json = JsonUtility.ToJson(currentWrapper);
+
+        // PlayerPrefsに保存
+        PlayerPrefs.SetString("LocalSaveList", json);
+        PlayerPrefs.Save();
+
+        Debug.Log("【保存完了】データを保存しました: " + json);
     }
 
     // 重ならない位置を探すロジック
@@ -118,7 +153,7 @@ public class SkyProject2D : MonoBehaviour
 
         Debug.Log($"【捜査4】オブジェクト '{data.constellationName}' を生成しました。位置: {position}");
 
-        // --- 以下、中身の生成（省略なしで書きます） ---
+        // 以下、中身の生成
         float currentScale = Random.Range(minDisplayScale, maxDisplayScale);
 
         BoxCollider2D col = rootObj.AddComponent<BoxCollider2D>();
@@ -156,6 +191,7 @@ public class SkyProject2D : MonoBehaviour
                            currentScale);
             }
         }
+        UpdateConstellationBloom(data);  //星の輝き更新
     }
 
     private void ScaleConstellationObject(in ConstellationData data, in float frameWidth, in float frameHeight)
@@ -189,5 +225,71 @@ public class SkyProject2D : MonoBehaviour
         lr.SetPosition(1, endLocal);
         lr.widthMultiplier = baseLineWidth * scale;
         lr.sortingOrder = 90;
+    }
+
+    private void GenerateSingleStar()
+    {
+        if (starPrefab == null) return;
+
+        for (int i = 0; i < starAmount; i++)
+        {
+            // 1. 位置をランダムに決定（画面端にも生成できるように、spawnAreaを調整）
+            float randomX = Random.Range(-spawnArea.x - 10, spawnArea.x + 10);
+            float randomY = Random.Range(-spawnArea.y - 10, spawnArea.y + 10);
+            Vector3 spawnPos = new Vector3(randomX, randomY, 0);
+
+            // 2. 生成 (skyRootがあればその子にする)
+            GameObject starObj = Instantiate(starPrefab, spawnPos, Quaternion.identity);
+            if (skyRoot != null) starObj.transform.SetParent(skyRoot);
+
+            // 名前を変えておくとわかりやすい（任意）
+            starObj.name = $"BgStar_{i}";
+
+            // 3. ランダムな大きさを適用
+            float randomScale = Random.Range(minSingleStarSize, maxSingleStarSize);
+            starObj.transform.localScale = Vector3.one * randomScale;
+
+            // 4. ランダムな輝き（Bloom）を適用
+            SpriteRenderer sr = starObj.GetComponent<SpriteRenderer>();
+            if (sr != null)
+            {
+                // 背景用の明るさをランダム決定
+                float randomIntensity = Random.Range(minBgStarBrightness, maxBgStarBrightness);
+
+                // HDRカラーを作成 (RGB > 1.0 で光る)
+                Color hdrColor = new Color(randomIntensity, randomIntensity, randomIntensity, 1f);
+                sr.color = hdrColor;
+
+                // 背景用の星なので、星座より奥に描画されるようにSortingOrderを下げる
+                //sr.sortingOrder = -10;
+            }
+        }
+
+        starPrefab.transform.localScale = Vector3.one;
+    }
+
+    //星の輝きを更新する関数
+    public void UpdateConstellationBloom(ConstellationData data)
+    {
+        if (skyRoot == null) return;
+        Transform targetTransform = skyRoot.Find(data.constellationName);
+        if (targetTransform == null) return;
+
+        // 計算: いいね数が多いほど値が大きくなる (例: 1.0 -> 1.2 -> 1.4 ...)
+        float intensity = baseIntensity + (data.likeCount * intensityPerLike);
+        // 上限キャップ
+        intensity = Mathf.Min(intensity, maxIntensity);
+
+        // HDRカラーを作成 (RGBすべてを1.0以上にすると白く光る)
+        Color hdrColor = new Color(intensity, intensity, intensity, 1f);
+
+        // 星（SpriteRenderer）をすべて取得して色をセット
+        SpriteRenderer[] stars = targetTransform.GetComponentsInChildren<SpriteRenderer>();
+        foreach (var starSprite in stars)
+        {
+            starSprite.color = hdrColor;
+        }
+
+        Debug.Log($"[{data.constellationName}] Bloom強度更新: {intensity}");
     }
 }

@@ -1,16 +1,29 @@
 using UnityEngine;
-using TMPro;
 using UnityEngine.UI;
+using TMPro;
 
 public class CommentListElement : MonoBehaviour
 {
+    [SerializeField] private TextMeshProUGUI contentText;
     [SerializeField] private Image iconImage;
-    [SerializeField] private Text contentText;
+    [SerializeField] private LayoutElement layoutElement;
 
-    // データをセットして表示を更新する
-    public void Setup(string content, Color iconColor)
+    public void Setup(string text, Color color)
     {
-        if (contentText != null) contentText.text = content;
-        if (iconImage != null) iconImage.color = iconColor;
+        if (contentText != null)
+        {
+            contentText.text = text;
+        }
+
+        if (iconImage != null)
+        {
+            iconImage.color = color;
+        }
+
+        // 念の為、高さ確保をコードからも強制する
+        if (layoutElement != null)
+        {
+            layoutElement.minHeight = 100f; // 最小高さを確保
+        }
     }
 }

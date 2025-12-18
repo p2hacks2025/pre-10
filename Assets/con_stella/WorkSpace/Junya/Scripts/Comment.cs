@@ -12,6 +12,56 @@ using Cysharp.Threading.Tasks;
 namespace Junya
 {
 #if new
+    [Serializable]
+    public sealed class Comment : IAttachable
+    {
+        // 親への参照（データ構造上）
+        public IAttachable parent;
+
+        // 子コメントのリスト（返信データ）
+        public List<Comment> children = new List<Comment>();
+
+        // コメント本文
+        public string content;
+
+        // 生成日時などを入れたければここに追加
+        // public string createdAt;
+
+        // コンストラクタ
+        public Comment(string content)
+        {
+            this.content = content;
+            this.children = new List<Comment>();
+        }
+
+        // 内容を取得するメソッド
+        public string GetContent()
+        {
+            return this.content ?? "";
+        }
+
+        // データを紐付けるメソッド
+        public void Attach(ref Comment comment)
+        {
+            if (this.children == null)
+            {
+                //childrenがnullだったら新しく箱を作る
+                this.children = new List<Comment>();
+            }
+
+            // データリストに追加
+            this.children.Add(comment);
+            comment.parent = this;
+
+        }
+    }
+
+    // インターフェース定義
+    public interface IAttachable
+    {
+        public abstract void Attach(ref Comment comment);
+    }
+#elif old1     
 
     [Serializable] public sealed class Comment : IAttachable, IAddCommentable
     {
@@ -34,7 +84,7 @@ namespace Junya
 
         //内容
         private string content;
-       
+
         private string Content
         {
             get
@@ -231,7 +281,7 @@ namespace Junya
         public abstract UniTask<Comment> AddComment();
     }
 
-#elif old    
+#elif old2
     public class Comment
     {
         public Vector3 coordinate;

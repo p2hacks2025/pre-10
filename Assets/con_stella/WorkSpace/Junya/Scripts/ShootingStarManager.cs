@@ -3,6 +3,7 @@ using UnityEngine;
 using System.Collections;
 using UnityEngine.UI;
 using System;
+using TMPro; // TMPを使うため追加
 
 public class ShootingStarManager : MonoBehaviour
 {
@@ -77,18 +78,35 @@ public class ShootingStarManager : MonoBehaviour
 
 #elif new
 
-    [Header("設定")]
-    public GameObject prefab;      // 流れ星のプレハブ
-    [SerializeField] private Transform starRoot; // 流れ星を配置する親（Canvasとか）
-    [SerializeField] private float speed = 5f;   // 速度
-    [SerializeField] private float minSize = 0.5f; //最小の大きさ
-    [SerializeField] private float maxSize = 1.0f;  //最大の大きさ
-
-    [Header("マップ範囲設定")]
-    public Vector2 mapSize = new Vector2(150f, 150f);
-
     // シングルトン化
     public static ShootingStarManager instance;
+
+    [Header("設定")]
+    public GameObject prefab;       // プレハブ
+    [SerializeField] private Transform starRoot;
+
+    [Header("パラメータ")]
+    //速度をランダムに
+    [SerializeField] private float minSpeed = 10f;
+    [SerializeField] private float maxSpeed = 25f;
+    [SerializeField] private float minSize = 0.5f;
+    [SerializeField] private float maxSize = 1.0f;
+
+    [Header("演出用：自動生成設定")]
+    // テキスト無し流れ星を自動で流す設定
+    [SerializeField] private bool enableAutoSpawn = true;
+    [SerializeField] private float minInterval = 5f;  // 最短何秒で次が流れるか
+    [SerializeField] private float maxInterval = 15f; // 最長何秒待つか
+    [SerializeField] private float minNonTextSpeed = 15f; // 少し速めにするなど
+    [SerializeField] private float maxNonTextSpeed = 30f;
+    [SerializeField] private float minNonTextSize = 0.3f; // 小さめにするなど
+    [SerializeField] private float maxNonTextSize = 0.8f;
+
+    [Header("Bloom設定 (HDR)")]
+    [SerializeField] private float bloomIntensity = 2.5f;
+
+    [Header("マップ範囲")]
+    public Vector2 mapSize = new Vector2(150f, 150f);
 
     void Awake()
     {
@@ -97,128 +115,167 @@ public class ShootingStarManager : MonoBehaviour
 
     void Start()
     {
-        // テスト用：3秒後にデモデータを流す
-        StartCoroutine(DemoSpawnRoutine());
+        if (enableAutoSpawn)
+        {
+            StartCoroutine(AutoSpawnCoroutine());
+        }
     }
 
-    // デモ用
-    IEnumerator DemoSpawnRoutine()
-    {
-        yield return new WaitForSeconds(1f);
-        SpawnStar(new ShootingStarData("願い事が叶いますように！"));
-
-        yield return new WaitForSeconds(2f);
-        SpawnStar(new ShootingStarData("Unity完全に理解した"));
-    }
-
-    // 外部（UIやFireBase受信時）から呼ぶ関数
+    // 投稿ボタンから呼ばれる
     public void SpawnStar(ShootingStarData data)
     {
-        // 右端より少し右
+        // ★修正点: テキストの有無でパラメータを切り替える
+        bool hasText = !string.IsNullOrEmpty(data.message);
+
+        float targetMinSpeed = hasText ? minSpeed : minNonTextSpeed;
+        float targetMaxSpeed = hasText ? maxSpeed : maxNonTextSpeed;
+
+        float targetMinSize = hasText ? minSize : minNonTextSize;
+        float targetMaxSize = hasText ? maxSize : maxNonTextSize;
+
+        // 1. 位置と速度の計算 (右→左)
         float spawnX = (mapSize.x / 2f) + 10f;
-
-        // 高さランダム
-        float spawnY = UnityEngine.Random.Range(-mapSize.y / 2f, mapSize.y / 2f) * 0.9f;
-
+        float spawnY = UnityEngine.Random.Range(-mapSize.y / 3f, mapSize.y / 3f);
         Vector3 startPos = new Vector3(spawnX, spawnY, 0);
 
-        // 速度ベクトルの計算
-        // 左方向を中心に、少し角度を散らす(±10度)
-        float angle = UnityEngine.Random.Range(170f, 190f);
-        Vector3 velocity = Quaternion.Euler(0, 0, angle) * Vector3.right * speed * Time.deltaTime;
+        float angle = UnityEngine.Random.Range(165f, 195f);
 
-        // 親オブジェクトの決定
+        float currentSpeed = UnityEngine.Random.Range(targetMinSpeed, targetMaxSpeed);
+        Vector3 velocity = Quaternion.Euler(0, 0, angle) * Vector3.right * currentSpeed * Time.deltaTime;
+        // 左方向へのベクトル (165度〜195度)
         Transform parent = starRoot != null ? starRoot : this.transform;
 
-        new ShootingStar(data.message, startPos, velocity, parent);
+        // クラス生成
+        new ShootingStar(data, startPos, velocity, parent, targetMinSize, targetMaxSize, bloomIntensity);
+    }
+
+    // 環境演出として、定期的にテキスト無しの流れ星を流す
+    private IEnumerator AutoSpawnCoroutine()
+    {
+        while (true)
+        {
+            // ランダムな時間待機
+            float waitTime = UnityEngine.Random.Range(minInterval, maxInterval);
+            yield return new WaitForSeconds(waitTime);
+
+            // 空のデータを作成して流す
+            ShootingStarData emptyData = new ShootingStarData("", "System");
+            SpawnStar(emptyData);
+        }
     }
 }
 
-// チームメンバー作成のクラス（微修正版）
+// 流れ星の制御クラス
 [Serializable]
 public class ShootingStar
 {
-    private readonly GameObject gameObject;
-    public string content;
+    private GameObject gameObject;
     private bool isWaste;
+    private string messageContent;
 
-    // コンストラクタに parent 引数を追加
-    public ShootingStar(string content, Vector3 initial, Vector3 velocity, Transform parent)
+    public ShootingStar(ShootingStarData data, Vector3 initial, Vector3 velocity, Transform parent, float minSize, float maxSize, float bloomIntensity)
     {
-        // 仕様チェック
-        if (velocity.y > 0f || velocity.z != 0f)
+        this.messageContent = data.message;
+        // メッセージがある時だけログを出す（自動生成でログが埋まるのを防ぐ）
+        if (!string.IsNullOrEmpty(data.message))
         {
-            // 上向き禁止仕様ならYを反転させる等の安全策をとっても良い
-            // throw new InvalidShootingException(); 
-            Debug.LogWarning("上向きの流れ星は禁止されています。補正します。");
-            velocity.y = -Mathf.Abs(velocity.y);
+            Debug.Log($"【ShootingStar】生成開始: '{data.message}'");
         }
 
-        // 生成
+        if (ShootingStarManager.instance.prefab == null) return;
+
+        // 1. 生成
         this.gameObject = MonoBehaviour.Instantiate(ShootingStarManager.instance.prefab, initial, Quaternion.identity);
-
-        // 角度調整
-        this.gameObject.transform.eulerAngles = new Vector3(0f, 0f, Mathf.Atan2(velocity.y, velocity.x) * Mathf.Rad2Deg + 180f);
-
-        // 指定された親（Canvasなど）の下に配置
         this.gameObject.transform.SetParent(parent, false);
-        // ワールド座標を再設定（SetParentでずれるかもしれないから）
-        this.gameObject.transform.position = initial;
+        this.gameObject.transform.position = initial; // 親設定後に再配置
 
-        // テキストセット
-        // "Content"という名前の子オブジェクトにTextがある前提
-        Transform contentTrans = this.gameObject.transform.Find("Content");
-        if (contentTrans == null)
+        // 2. 角度調整 (本体は進行方向に向ける: 左向きなど)
+        float angle = Mathf.Atan2(velocity.y, velocity.x) * Mathf.Rad2Deg;
+        this.gameObject.transform.rotation = Quaternion.Euler(0, 0, angle);
+
+        // 「進行方向の傾き」は維持しつつ、「上下反転」だけを直して文字を読めるようにします。
+        // Canvasを探して、テキストがあるかどうかで表示/非表示を切り替える
+        Canvas worldCanvas = this.gameObject.GetComponentInChildren<Canvas>();
+        TextMeshProUGUI tmp = this.gameObject.GetComponentInChildren<TextMeshProUGUI>();
+        if (string.IsNullOrEmpty(data.message))
         {
-            Debug.LogError("【エラー】'Content' という名前の子オブジェクトが見つかりません！プレハブを確認してください。");
+            // ★テキストが無い(空)なら、Canvasごと非表示にする（星とTrailだけ見える）
+            if (worldCanvas != null) worldCanvas.gameObject.SetActive(false);
         }
         else
         {
-            // 2. Legacy Text か TextMeshPro の両方を試す
-            Text legacyText = contentTrans.GetComponent<Text>();
-            TMPro.TextMeshProUGUI tmpText = contentTrans.GetComponent<TMPro.TextMeshProUGUI>();
+            // ★テキストがあるなら、角度を直してテキストセット
+            if (worldCanvas != null)
+            {
+                worldCanvas.gameObject.SetActive(true);
+                worldCanvas.transform.localRotation = Quaternion.Euler(0, 0, 180f);
+            }
 
-            if (legacyText != null)
+            if (tmp != null)
             {
-                legacyText.text = content;
-                // Debug.Log("Legacy Text にセットしました");
-            }
-            else if (tmpText != null)
-            {
-                tmpText.text = content;
-                // Debug.Log("TextMeshPro にセットしました");
-            }
-            else
-            {
-                Debug.LogError("【エラー】'Content' オブジェクトに Text または TextMeshProUGUI コンポーネントがついていません！");
+                tmp.text = data.message;
             }
         }
+        // 3. サイズランダム
+        float scale = UnityEngine.Random.Range(minSize, maxSize);
+        this.gameObject.transform.localScale = Vector3.one * scale;
 
-        // 移動開始
+        // 4. テキストセット (★修正点2: 文字化け/未反映の確認)
+        if (tmp != null)
+        {
+            tmp.text = data.message;
+            // Debug.Log("テキストセット完了: " + tmp.text);
+        }
+        else
+        {
+            Debug.LogError("【エラー】ShootingStarプレハブの中にTextMeshProUGUIが見つかりません！構造を確認してください。");
+        }
+
+        // 5. Bloom設定 & Trail表示修正 (★修正点3)
+        Color hdrColor = new Color(bloomIntensity, bloomIntensity, bloomIntensity, 1f);
+
+        // Sprite
+        SpriteRenderer sr = this.gameObject.GetComponentInChildren<SpriteRenderer>();
+        if (sr != null)
+        {
+            sr.color = hdrColor;
+            sr.sortingOrder = 100; // 星を手前に
+        }
+
+        // Trail
+        TrailRenderer tr = this.gameObject.GetComponentInChildren<TrailRenderer>();
+        if (tr != null)
+        {
+            tr.startColor = hdrColor;
+            tr.endColor = new Color(bloomIntensity, bloomIntensity, bloomIntensity, 0f); // 最後は透明
+
+            // 重要: Trailが見えない原因の多くはLayer/Order問題
+            tr.sortingLayerName = "Default";
+            tr.sortingOrder = 90; // 星(100)より少し後ろ、背景(-10)より手前
+
+            // 幅の設定（念の為）
+            tr.widthMultiplier = 0.5f * scale;
+            tr.time = 0.8f; // 軌跡が残る時間
+            tr.emitting = true;
+        }
+
+        // 6. 移動開始
         ShootingStarManager.instance.StartCoroutine(ShootCoroutine(velocity));
     }
 
     private IEnumerator ShootCoroutine(Vector3 velocity)
     {
-        // マップの境界線を取得 (Managerの設定を使う)
-        Vector2 limit = ShootingStarManager.instance.mapSize / 2f;
-        float destroyMargin = 20f; // 画面外にこれくらい出たら消す
-
-        // 左端、上端、下端の限界ライン
-        float minX = -limit.x - destroyMargin;
-        float maxY = limit.y + destroyMargin;
-        float minY = -limit.y - destroyMargin;
+        float boundaryX = -(ShootingStarManager.instance.mapSize.x / 2f) - 30f;
 
         while (this.gameObject != null && !this.isWaste)
         {
+            // 移動
             this.gameObject.transform.position += velocity;
 
-            Vector3 pos = this.gameObject.transform.position;
-
-            // 左に突き抜けた or 上下に突き抜けた 場合に消滅
-            if (pos.x < minX || pos.y > maxY || pos.y < minY)
+            // 左端を超えたら消す
+            if (this.gameObject.transform.position.x < boundaryX)
             {
-                Stop(); // 自爆
+                Stop();
                 break;
             }
 
@@ -229,9 +286,17 @@ public class ShootingStar
     public void Stop()
     {
         this.isWaste = true;
-        if (this.gameObject != null) MonoBehaviour.Destroy(this.gameObject);
-    }
 
-    private class InvalidShootingException : Exception { }
+        // メッセージがあった場合のみ「削除」ログを出す
+        if (!string.IsNullOrEmpty(this.messageContent))
+        {
+            Debug.Log($"【DB削除予定】消滅: {this.messageContent}");
+        }
+
+        if (this.gameObject != null)
+        {
+            MonoBehaviour.Destroy(this.gameObject);
+        }
+    }
 }
 #endif
