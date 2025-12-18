@@ -22,7 +22,7 @@ namespace Junya
         public List<Comment> children = new List<Comment>();
 
         // コメント本文
-        private string content;
+        public string content;
 
         // 生成日時などを入れたければここに追加
         // public string createdAt;
@@ -32,9 +32,6 @@ namespace Junya
         {
             this.content = content;
             this.children = new List<Comment>();
-
-            // ★重要：ここで Instantiate (生成) はしません！
-            // データを作るだけに専念させます。
         }
 
         // 内容を取得するメソッド
@@ -46,6 +43,12 @@ namespace Junya
         // データを紐付けるメソッド
         public void Attach(ref Comment comment)
         {
+            if (this.children == null)
+            {
+                //childrenがnullだったら新しく箱を作る
+                this.children = new List<Comment>();
+            }
+
             // データリストに追加
             this.children.Add(comment);
             comment.parent = this;

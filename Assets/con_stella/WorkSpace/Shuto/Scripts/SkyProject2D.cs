@@ -11,9 +11,12 @@ public class SkyProject2D : MonoBehaviour
     [SerializeField] private Transform skyRoot;
 
     [Header("配置設定")]
+    [SerializeField] private int starAmount = 200;
     [SerializeField] private Vector2 spawnArea = new Vector2(60f, 60f);
     [SerializeField] private float maxDisplayScale = 0.05f;
     [SerializeField] private float minDisplayScale = 0.01f;
+    [SerializeField] private float minSingleStarSize = 0.5f;
+    [SerializeField] private float maxSingleStarSize = 1.5f;
     [SerializeField] private float baseLineWidth = 2.0f;
 
     [Header("UI連携")]
@@ -34,6 +37,7 @@ public class SkyProject2D : MonoBehaviour
     void Start()
     {
         LoadLocalData();
+        GenerateSingleStar();
     }
 
     public void LoadLocalData()
@@ -56,24 +60,24 @@ public class SkyProject2D : MonoBehaviour
         Debug.Log("【捜査2】JSONデータを発見: " + json);
 
         // 3. リストに復元できるか確認
-        ConstellationListWrapper wrapper = JsonUtility.FromJson<ConstellationListWrapper>(json);
+        currentWrapper = JsonUtility.FromJson<ConstellationListWrapper>(json);
 
-        if (wrapper == null)
+        if (currentWrapper == null)
         {
             Debug.LogError("【捜査エラー】JSONの解析に失敗しました。データが壊れています。");
             return;
         }
 
-        if (wrapper.list == null || wrapper.list.Count == 0)
+        if (currentWrapper.list == null || currentWrapper.list.Count == 0)
         {
             Debug.LogError("【捜査エラー】リストの中身が空っぽ(0件)です！保存処理がうまくいっていません。");
             return;
         }
 
-        Debug.Log($"【捜査3】{wrapper.list.Count} 件のデータを確認。生成を開始します...");
+        Debug.Log($"【捜査3】{currentWrapper.list.Count} 件のデータを確認。生成を開始します...");
 
         // 4. 生成ループ
-        foreach (var data in wrapper.list)
+        foreach (var data in currentWrapper.list)
         {
             // 位置を決める
             float randomX = Random.Range(-spawnArea.x, spawnArea.x);
@@ -213,5 +217,20 @@ public class SkyProject2D : MonoBehaviour
         lr.SetPosition(1, endLocal);
         lr.widthMultiplier = baseLineWidth * scale;
         lr.sortingOrder = 90;
+    }
+
+    private void GenerateSingleStar()
+    {
+        Vector2 spawnPos;
+        for (int i = 0; i < starAmount; i++)
+        {
+            //starPrefab.transform.localScale = Random.Range(minSingleStarSize, maxSingleStarSize);
+
+            spawnPos = new Vector2(Random.Range(-spawnArea.x, spawnArea.x), Random.Range(-spawnArea.y, spawnArea.y));
+
+            Instantiate(starPrefab, new Vector2(spawnPos.x, spawnPos.y), Quaternion.identity);
+        }
+
+        starPrefab.transform.localScale = Vector3.one;
     }
 }
