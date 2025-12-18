@@ -20,8 +20,16 @@ public class SkyUIManager : UIBaseManager
     [Header("【1】DetailPanel (星座詳細)")]
     [SerializeField] private RectTransform detailPanel;
     [SerializeField] private TextMeshProUGUI nameText;
-    [SerializeField] private Transform detailDescriptionRoot; [SerializeField] private Transform listContentRoot;       // ここが ScrollView/Viewport/Content であること
+    [SerializeField] private Transform detailDescriptionRoot; 
+    [SerializeField] private Transform listContentRoot;       // ここが ScrollView/Viewport/Content であること
     [SerializeField] private CommentListElement commentItemPrefab;
+    [Header("いいね機能")]
+    [SerializeField] private Button likeButton;           // ボタン本体
+    [SerializeField] private Image likeButtonImage;       // 色を変える対象（ハート画像のImage）
+    [SerializeField] private TextMeshProUGUI likeCountText;
+    // 色の設定
+    private Color unlikedColor = Color.white;
+    private Color likedColor = Color.red;
 
     [Header("【2】PostStarPanel (流れ星投稿)")]
     [SerializeField] private RectTransform postStarPanel;
@@ -34,7 +42,7 @@ public class SkyUIManager : UIBaseManager
 
     [Header("その他")]
     [SerializeField] private SkyCameraController cameraController;
-    [SerializeField] private CommentManager commentManager;
+    //[SerializeField] private CommentManager commentManager;
     // 内部変数
     private ConstellationData currentData;
     private float currentPanelOffset;
@@ -165,6 +173,56 @@ public class SkyUIManager : UIBaseManager
 
         // テキストセット（色は目立つように黄色などに設定例）
         item.Setup(text, new Color(1f, 0.8f, 0.2f));
+    }
+
+    // いいねボタンが押されたときの処理
+    public void OnLikeButtonClicked()
+    {
+        if (currentData == null) return;
+
+        // すでにいいね済みなら何もしない（念の為のガード）
+        if (currentData.isLiked) return;
+
+        // 1. データ更新
+        currentData.likeCount++;
+        currentData.isLiked = true; // フラグを立てる
+
+        // 2. UI更新 (即座に赤くする)
+        UpdateLikeUI();
+
+        // 3. 星座のBloom更新 (SkyProject2Dへ依頼)
+        if (SkyProject2D.instance != null)
+        {
+            SkyProject2D.instance.UpdateConstellationBloom(currentData);
+
+            // 4. 保存
+            SkyProject2D.instance.SaveLocalData();
+        }
+    }
+
+    // UIの表示だけを更新するヘルパー関数
+    private void UpdateLikeUI()
+    {
+        if (currentData == null) return;
+
+        // 数字の更新（自分にのみ表示されるように後で改造）
+        if (likeCountText != null)
+        {
+            likeCountText.text = currentData.likeCount.ToString();
+        }
+
+        // ボタンの色と有効状態の更新
+        if (likeButtonImage != null)
+        {
+            // いいね済みなら赤、まだなら白
+            likeButtonImage.color = currentData.isLiked ? likedColor : unlikedColor;
+        }
+
+        if (likeButton != null)
+        {
+            // すでに「いいね」していたらボタンを押せなくする（あるいは押せても何も起きないようにする）
+            likeButton.interactable = !currentData.isLiked;
+        }
     }
 
     // 返信ボタン (DetailPanel -> ReplyPanel)

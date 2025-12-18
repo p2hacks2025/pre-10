@@ -17,6 +17,8 @@ public class SkyProject2D : MonoBehaviour
     [SerializeField] private float minDisplayScale = 0.01f;
     [SerializeField] private float minSingleStarSize = 0.5f;
     [SerializeField] private float maxSingleStarSize = 1.5f;
+    [SerializeField] private float minBgStarBrightness = 0.5f; // 暗め
+    [SerializeField] private float maxBgStarBrightness = 1.5f; // 少し光る
     [SerializeField] private float baseLineWidth = 2.0f;
 
     [Header("UI連携")]
@@ -24,6 +26,11 @@ public class SkyProject2D : MonoBehaviour
 
     [SerializeField] private float collisionCheckRadius = 10f; // この半径内に他の星座があったら配置し直す
     [SerializeField] private int maxRetryCount = 10; // 配置場所が見つからない時の最大再試行回数
+
+    [Header("いいね演出 (Bloom用HDR設定)")]
+    [SerializeField] private float baseIntensity = 1.0f;     // 通常時の明るさ (1.0 = そのまま)
+    [SerializeField] private float intensityPerLike = 0.2f;  // 1いいねごとの加算値
+    [SerializeField] private float maxIntensity = 4.0f;      // 明るさの限界値
 
     // 読み込んだ全データをここに保持しておく
     public ConstellationListWrapper currentWrapper;
@@ -146,7 +153,7 @@ public class SkyProject2D : MonoBehaviour
 
         Debug.Log($"【捜査4】オブジェクト '{data.constellationName}' を生成しました。位置: {position}");
 
-        // --- 以下、中身の生成（省略なしで書きます） ---
+        // 以下、中身の生成
         float currentScale = Random.Range(minDisplayScale, maxDisplayScale);
 
         BoxCollider2D col = rootObj.AddComponent<BoxCollider2D>();
@@ -184,6 +191,7 @@ public class SkyProject2D : MonoBehaviour
                            currentScale);
             }
         }
+        UpdateConstellationBloom(data);  //星の輝き更新
     }
 
     private void ScaleConstellationObject(in ConstellationData data, in float frameWidth, in float frameHeight)
@@ -221,16 +229,67 @@ public class SkyProject2D : MonoBehaviour
 
     private void GenerateSingleStar()
     {
-        Vector2 spawnPos;
+        if (starPrefab == null) return;
+
         for (int i = 0; i < starAmount; i++)
         {
-            //starPrefab.transform.localScale = Random.Range(minSingleStarSize, maxSingleStarSize);
+            // 1. 位置をランダムに決定（画面端にも生成できるように、spawnAreaを調整）
+            float randomX = Random.Range(-spawnArea.x - 10, spawnArea.x + 10);
+            float randomY = Random.Range(-spawnArea.y - 10, spawnArea.y + 10);
+            Vector3 spawnPos = new Vector3(randomX, randomY, 0);
 
-            spawnPos = new Vector2(Random.Range(-spawnArea.x, spawnArea.x), Random.Range(-spawnArea.y, spawnArea.y));
+            // 2. 生成 (skyRootがあればその子にする)
+            GameObject starObj = Instantiate(starPrefab, spawnPos, Quaternion.identity);
+            if (skyRoot != null) starObj.transform.SetParent(skyRoot);
 
-            Instantiate(starPrefab, new Vector2(spawnPos.x, spawnPos.y), Quaternion.identity);
+            // 名前を変えておくとわかりやすい（任意）
+            starObj.name = $"BgStar_{i}";
+
+            // 3. ランダムな大きさを適用
+            float randomScale = Random.Range(minSingleStarSize, maxSingleStarSize);
+            starObj.transform.localScale = Vector3.one * randomScale;
+
+            // 4. ランダムな輝き（Bloom）を適用
+            SpriteRenderer sr = starObj.GetComponent<SpriteRenderer>();
+            if (sr != null)
+            {
+                // 背景用の明るさをランダム決定
+                float randomIntensity = Random.Range(minBgStarBrightness, maxBgStarBrightness);
+
+                // HDRカラーを作成 (RGB > 1.0 で光る)
+                Color hdrColor = new Color(randomIntensity, randomIntensity, randomIntensity, 1f);
+                sr.color = hdrColor;
+
+                // 背景用の星なので、星座より奥に描画されるようにSortingOrderを下げる
+                //sr.sortingOrder = -10;
+            }
         }
 
         starPrefab.transform.localScale = Vector3.one;
+    }
+
+    //星の輝きを更新する関数
+    public void UpdateConstellationBloom(ConstellationData data)
+    {
+        if (skyRoot == null) return;
+        Transform targetTransform = skyRoot.Find(data.constellationName);
+        if (targetTransform == null) return;
+
+        // 計算: いいね数が多いほど値が大きくなる (例: 1.0 -> 1.2 -> 1.4 ...)
+        float intensity = baseIntensity + (data.likeCount * intensityPerLike);
+        // 上限キャップ
+        intensity = Mathf.Min(intensity, maxIntensity);
+
+        // HDRカラーを作成 (RGBすべてを1.0以上にすると白く光る)
+        Color hdrColor = new Color(intensity, intensity, intensity, 1f);
+
+        // 星（SpriteRenderer）をすべて取得して色をセット
+        SpriteRenderer[] stars = targetTransform.GetComponentsInChildren<SpriteRenderer>();
+        foreach (var starSprite in stars)
+        {
+            starSprite.color = hdrColor;
+        }
+
+        Debug.Log($"[{data.constellationName}] Bloom強度更新: {intensity}");
     }
 }

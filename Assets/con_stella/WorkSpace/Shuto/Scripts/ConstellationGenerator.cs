@@ -151,10 +151,7 @@ public class ConstellationGenerator : MonoBehaviour
         saveData.createdAt = System.DateTime.Now.ToString();
         saveData.likeCount = 0;
 
-        // ---------------------------------------------------------
-        // ★重要：ここから下の「星と線の保存処理」を消さないでください！
-        // ---------------------------------------------------------
-
+        // 星と線の保存処理
         Dictionary<GameObject, int> objToIdMap = new Dictionary<GameObject, int>();
         int currentId = 0;
 

@@ -23,6 +23,7 @@ public class ConstellationData : IAttachable
     public List<ConnectionData> connections = new List<ConnectionData>();
     public Comment root;
     public int likeCount;
+    public bool isLiked = false;  //いいね済みかどうか
 
     //データの紐づけのみを行うように変更。（表示は別でやる）
     public void Attach(ref Comment comment)
