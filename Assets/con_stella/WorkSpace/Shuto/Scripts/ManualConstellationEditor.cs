@@ -378,6 +378,7 @@ public class ManualConstellationEditor : MonoBehaviour
     public ConstellationData GetConstellationData()
     {
         ConstellationData data = new ConstellationData();
+        data.guid = System.Guid.NewGuid().ToString();
         data.createdAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
 
         Dictionary<GameObject, int> objToId = new Dictionary<GameObject, int>();

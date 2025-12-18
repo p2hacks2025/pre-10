@@ -145,6 +145,7 @@ public class ConstellationGenerator : MonoBehaviour
         ConstellationData saveData = new ConstellationData();
 
         // UIから受け取ったデータをセット
+        saveData.guid = System.Guid.NewGuid().ToString();
         saveData.constellationName = name;
         saveData.description = description;
 

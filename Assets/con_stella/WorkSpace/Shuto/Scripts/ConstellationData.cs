@@ -16,6 +16,7 @@ using Junya;
 [Serializable]
 public class ConstellationData : IAttachable
 {
+    public string guid; // ŒÅ—LID
     public string constellationName;
     public string createdAt;
     public string description;
