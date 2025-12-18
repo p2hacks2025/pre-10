@@ -43,6 +43,7 @@ public class SkyProject2D : MonoBehaviour
 
     void Start()
     {
+        CheckSavedData();
         LoadLocalData();
         GenerateSingleStar();
     }
@@ -291,5 +292,17 @@ public class SkyProject2D : MonoBehaviour
         }
 
         Debug.Log($"[{data.constellationName}] Bloom強度更新: {intensity}");
+    }
+    void CheckSavedData()
+    {
+        if (PlayerPrefs.HasKey("LocalSaveList"))
+        {
+            string json = PlayerPrefs.GetString("LocalSaveList");
+            Debug.Log("【保存データの中身】: " + json);
+        }
+        else
+        {
+            Debug.Log("保存されたデータはありません。");
+        }
     }
 }

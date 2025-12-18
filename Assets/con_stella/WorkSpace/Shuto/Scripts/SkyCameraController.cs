@@ -1,66 +1,90 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using System.Collections; // コルーチン用
 
 public class SkyCameraController : MonoBehaviour
 {
     [Header("背景マップのサイズ設定")]
-    // BackgroundCanvasのPanelのWidth/Heightと同じ値を入れてください
     [SerializeField] private float mapWidth = 150f;
     [SerializeField] private float mapHeight = 150f;
 
     [Header("移動設定")]
-    [SerializeField] private Vector2 mapSize = new Vector2(100f, 100f); // 移動上限
+    [SerializeField] private Vector2 mapSize = new Vector2(100f, 100f);
 
     [Header("ズーム設定")]
-    [SerializeField] private float zoomSpeed = 0.001f; // 感度調整（スクロール値が大きいので小さめに）
-    [SerializeField] private float minZoom = 2f;  // 最大ズーム（寄り）
+    [SerializeField] private float zoomSpeed = 0.01f;      // マウスホイール用感度
+    [SerializeField] private float touchZoomSpeed = 0.01f; // ★追加: スマホピンチ用感度
+    [SerializeField] private float minZoom = 2f;           // 最大ズーム（寄り）
+
+    [Header("アニメーション設定")]
+    [SerializeField] private float smoothTime = 0.3f; // ★追加: 移動にかける時間
 
     [Header("UI連携")]
     [SerializeField] private SkyUIManager uiManager;
 
-    private bool isInputLocked = false; //操作ロックフラグ
+    private bool isInputLocked = false;
 
-    private Vector3 dragStartPos; // ドラッグ開始位置（ワールド座標）
-    private Vector2 clickStartScreenPos; // クリック判定用の開始位置（スクリーン座標）
-    private bool isDragging = false; // ドラッグ中かどうかの判定
+    private Vector3 dragStartPos;
+    private Vector2 clickStartScreenPos;
+    private bool isDragging = false;
     private Camera cam;
+
+    // アニメーション用変数
+    private Vector3 currentVelocityPos; // SmoothDamp用
+    private float currentVelocityZoom;  // SmoothDamp用
+    private Coroutine currentMoveCoroutine;
 
     void Start()
     {
         cam = GetComponent<Camera>();
-
-        // 開始時に位置とズームを補正して、はみ出さないようにする
         ClampCameraPosition();
     }
 
     void Update()
     {
-        // ポインター（マウスやタッチ）がなければ何もしない
-        if (Pointer.current == null) return;
         if (isInputLocked) return;
 
-        HandlePan();
+        // アニメーション中は操作を受け付けない、または操作したらアニメーションを止めるなどの制御が可能
+        // ここでは「操作したらアニメーション停止」は実装せず、並列で動かないようにだけ注意します
+
+        // マウス・タッチ共通のドラッグ移動
+        if (Pointer.current != null)
+        {
+            HandlePan();
+        }
+
+        // ズーム処理（マウスホイール & ピンチ操作）
         HandleZoom();
+        HandleTouchZoom(); // ★追加
     }
 
     private void HandlePan()
     {
-        // 1. ドラッグ開始（押した瞬間）
+        // ピンチ操作中（2本指）はパン移動（1本指）をさせないようにガード
+        if (Touchscreen.current != null && Touchscreen.current.touches.Count >= 2)
+        {
+            isDragging = false;
+            return;
+        }
+
+        // 1. ドラッグ開始
         if (Pointer.current.press.wasPressedThisFrame)
         {
+            // アニメーション中に触ったら止める（直感的な操作のため）
+            if (currentMoveCoroutine != null) StopCoroutine(currentMoveCoroutine);
+
             Vector2 screenPos = Pointer.current.position.ReadValue();
             clickStartScreenPos = screenPos;
             dragStartPos = cam.ScreenToWorldPoint(new Vector3(screenPos.x, screenPos.y, 0));
             isDragging = false;
         }
 
-        // 2. ドラッグ中（押している間）
+        // 2. ドラッグ中
         if (Pointer.current.press.isPressed)
         {
             Vector2 screenPos = Pointer.current.position.ReadValue();
 
-            // クリック開始位置から一定以上動いたら「ドラッグ」とみなす
-            if (Vector2.Distance(screenPos, clickStartScreenPos) > 10f) // 10ピクセル以上動いたら
+            if (Vector2.Distance(screenPos, clickStartScreenPos) > 10f)
             {
                 isDragging = true;
             }
@@ -71,93 +95,82 @@ public class SkyCameraController : MonoBehaviour
                 Vector3 difference = dragStartPos - currentPos;
 
                 transform.position += difference;
-
-                // 移動制限
                 ClampCameraPosition();
             }
         }
 
-        // 3. 指を離した瞬間（ドラッグしていなければクリックとみなす）
+        // 3. リリース（クリック判定）
         if (Pointer.current.press.wasReleasedThisFrame)
         {
             if (!isDragging)
             {
-                // ここでクリック処理を実行！
                 CheckClickObject(Pointer.current.position.ReadValue());
             }
             isDragging = false;
         }
     }
 
-    //ConstellationClickTrigger から名前などのデータを正しく取得するには、
-    //Trigger側に public ConstellationData GetData() のようなメソッドを作り、
-    //そこから constellationName を取ってくるのがベストです。
-    //今回は簡易的に gameObject.name を渡しています。
-    // クリックした場所に何があるか調べる
     private void CheckClickObject(Vector2 screenPos)
     {
         Vector3 worldPos = cam.ScreenToWorldPoint(screenPos);
-
-        // 2DのRaycastを飛ばす
         RaycastHit2D hit = Physics2D.Raycast(worldPos, Vector2.zero);
 
         if (hit.collider != null)
         {
-            // まずはクリック用トリガーを探す
             ConstellationClickTrigger trigger = hit.collider.GetComponent<ConstellationClickTrigger>();
-
-            // なければ親などをたどって探す（念の為）
             if (trigger == null) trigger = hit.collider.GetComponentInParent<ConstellationClickTrigger>();
 
             if (trigger != null)
             {
-                // ズーム実行
+                // ★修正: 滑らかにズーム
                 FocusOnTarget(hit.transform.position);
 
-                // UIを表示して、操作をロックする
                 isInputLocked = true;
-
-                //データ取得
                 ConstellationData data = trigger.GetData();
                 uiManager.ShowDetail(data);
             }
         }
     }
 
-    // カメラが背景からはみ出さないように位置とズームを制限する関数
-    private void ClampCameraPosition()
+    // ★追加: スマホのピンチズーム処理
+    private void HandleTouchZoom()
     {
-        // 1. まずズーム（OrthographicSize）の上限を計算
-        // 縦方向の限界: マップの高さ半分
-        float maxCamSizeV = mapHeight / 2f;
-        // 横方向の限界: マップの幅半分 / アスペクト比
-        float maxCamSizeH = (mapWidth / 2f) / cam.aspect;
+        // タッチパネルがない、または指が2本ない場合は無視
+        if (Touchscreen.current == null || Touchscreen.current.touches.Count < 2) return;
 
-        // 縦と横、どちらか厳しい方を「最大ズームアウト量」とする
-        float maxZoomAllowed = Mathf.Min(maxCamSizeV, maxCamSizeH);
+        // 2本の指の情報を取得
+        var touch0 = Touchscreen.current.touches[0];
+        var touch1 = Touchscreen.current.touches[1];
 
-        // ズームを制限範囲内に収める
-        cam.orthographicSize = Mathf.Clamp(cam.orthographicSize, minZoom, maxZoomAllowed);
+        // いずれかの指が動いていないなら処理しない
+        if (touch0.phase.ReadValue() == UnityEngine.InputSystem.TouchPhase.Stationary &&
+            touch1.phase.ReadValue() == UnityEngine.InputSystem.TouchPhase.Stationary)
+        {
+            return;
+        }
 
-        // 2. 現在のカメラの表示範囲（縦横の半分サイズ）を計算
-        float vertExtent = cam.orthographicSize;
-        float horzExtent = vertExtent * cam.aspect;
+        // 現在の2点間の距離
+        Vector2 touch0Pos = touch0.position.ReadValue();
+        Vector2 touch1Pos = touch1.position.ReadValue();
+        float currentDist = Vector2.Distance(touch0Pos, touch1Pos);
 
-        // 3. 移動可能な限界座標を計算
-        // マップの端っこ - カメラの表示範囲 = カメラの中心が行ける限界
-        float minX = -mapWidth / 2f + horzExtent;
-        float maxX = mapWidth / 2f - horzExtent;
-        float minY = -mapHeight / 2f + vertExtent;
-        float maxY = mapHeight / 2f - vertExtent;
+        // 直前のフレームの2点間の距離（Deltaを使って逆算）
+        Vector2 touch0PrevPos = touch0Pos - touch0.delta.ReadValue();
+        Vector2 touch1PrevPos = touch1Pos - touch1.delta.ReadValue();
+        float prevDist = Vector2.Distance(touch0PrevPos, touch1PrevPos);
 
-        // 4. 位置をClamp（制限）する
-        Vector3 pos = transform.position;
+        // 差分（プラスなら拡大操作、マイナスなら縮小操作）
+        float zoomMagnitude = prevDist - currentDist;
 
-        // もしズームアウトしすぎて計算がおかしくなった場合は中心(0)に戻す
-        pos.x = (minX > maxX) ? 0f : Mathf.Clamp(pos.x, minX, maxX);
-        pos.y = (minY > maxY) ? 0f : Mathf.Clamp(pos.y, minY, maxY);
+        // アニメーション停止
+        if (currentMoveCoroutine != null && Mathf.Abs(zoomMagnitude) > 0.1f) StopCoroutine(currentMoveCoroutine);
 
-        transform.position = pos;
+        // ズーム適用
+        if (Mathf.Abs(zoomMagnitude) > 0.01f)
+        {
+            cam.orthographicSize += zoomMagnitude * touchZoomSpeed;
+            ClampCameraPosition();
+        }
     }
 
     private void HandleZoom()
@@ -167,42 +180,99 @@ public class SkyCameraController : MonoBehaviour
             float scroll = Mouse.current.scroll.ReadValue().y;
             if (scroll != 0.0f)
             {
-                cam.orthographicSize -= scroll * zoomSpeed;
+                // アニメーション停止
+                if (currentMoveCoroutine != null) StopCoroutine(currentMoveCoroutine);
 
+                // マウスホイールの値は大きいので調整
+                cam.orthographicSize -= scroll * zoomSpeed;
                 ClampCameraPosition();
             }
         }
     }
 
-    // 特定の星座へズームインする機能
+    // クランプ処理（変更なし）
+    private void ClampCameraPosition()
+    {
+        float maxCamSizeV = mapHeight / 2f;
+        float maxCamSizeH = (mapWidth / 2f) / cam.aspect;
+        float maxZoomAllowed = Mathf.Min(maxCamSizeV, maxCamSizeH);
+
+        cam.orthographicSize = Mathf.Clamp(cam.orthographicSize, minZoom, maxZoomAllowed);
+
+        float vertExtent = cam.orthographicSize;
+        float horzExtent = vertExtent * cam.aspect;
+
+        float minX = -mapWidth / 2f + horzExtent;
+        float maxX = mapWidth / 2f - horzExtent;
+        float minY = -mapHeight / 2f + vertExtent;
+        float maxY = mapHeight / 2f - vertExtent;
+
+        Vector3 pos = transform.position;
+        pos.x = (minX > maxX) ? 0f : Mathf.Clamp(pos.x, minX, maxX);
+        pos.y = (minY > maxY) ? 0f : Mathf.Clamp(pos.y, minY, maxY);
+
+        transform.position = pos;
+    }
+
+    // ★修正: 滑らかにターゲットへ移動する機能
     public void FocusOnTarget(Vector3 targetPos)
     {
-        // ターゲット位置も移動制限の範囲内に収める
+        // ターゲット位置の制限計算
         float clampedX = Mathf.Clamp(targetPos.x, -mapSize.x, mapSize.x);
         float clampedY = Mathf.Clamp(targetPos.y, -mapSize.y, mapSize.y);
+        Vector3 finalPos = new Vector3(clampedX, clampedY, -10f);
 
-        transform.position = new Vector3(clampedX, clampedY, -10f);
-        cam.orthographicSize = minZoom + 2f; // いい感じのズーム率にする
+        // 目標のズーム値
+        float targetZoom = minZoom + 2f;
+
+        // 既に動いているコルーチンがあれば止める
+        if (currentMoveCoroutine != null) StopCoroutine(currentMoveCoroutine);
+
+        // コルーチン開始
+        currentMoveCoroutine = StartCoroutine(SmoothMoveRoutine(finalPos, targetZoom));
     }
 
-    // エディタ上でマップの大きさを緑の線で表示
-    void OnDrawGizmos()
+    // ★追加: アニメーション用コルーチン
+    private IEnumerator SmoothMoveRoutine(Vector3 targetPos, float targetZoom)
     {
-        Gizmos.color = Color.green;
-        Gizmos.DrawWireCube(Vector3.zero, new Vector3(mapWidth, mapHeight, 0));
-    }
+        // ほぼ目標値になるまでループ
+        while (Vector3.Distance(transform.position, targetPos) > 0.01f || Mathf.Abs(cam.orthographicSize - targetZoom) > 0.01f)
+        {
+            // 位置の補間 (SmoothDamp)
+            transform.position = Vector3.SmoothDamp(transform.position, targetPos, ref currentVelocityPos, smoothTime);
 
-    // 元に戻す機能（閉じるボタンから呼ばれる）
-    public void ResetView()
-    {
-        // ズームを引く（最小ズーム値に戻すなど、お好みで）
-        // ここでは「少し引いた状態」に戻します
-        cam.orthographicSize = 10f; // 適当な引きの値
+            // ズームの補間 (SmoothDamp)
+            cam.orthographicSize = Mathf.SmoothDamp(cam.orthographicSize, targetZoom, ref currentVelocityZoom, smoothTime);
 
-        // 画面外に出ていないか補正
+            // 補間中も画面外にはみ出さないようガード
+            ClampCameraPosition();
+
+            yield return null;
+        }
+
+        // 最後はきっちり値を合わせる
+        transform.position = targetPos;
+        cam.orthographicSize = targetZoom;
         ClampCameraPosition();
 
-        // ロック解除
+        currentMoveCoroutine = null;
+    }
+
+    public void ResetView()
+    {
+        // リセット時も滑らかに戻したい場合はここもコルーチンにできますが、
+        // 閉じるボタンでUIが動くので、ここは即座に戻すか、お好みで。
+        // 今回は即座に戻すままにします。
+        cam.orthographicSize = 10f;
+        ClampCameraPosition();
         isInputLocked = false;
+
+        // アニメーション中なら止める
+        if (currentMoveCoroutine != null) StopCoroutine(currentMoveCoroutine);
+    }
+
+    public Vector3 GetMapSize()
+    {
+        return new Vector3(mapWidth, mapHeight, 1);
     }
 }
