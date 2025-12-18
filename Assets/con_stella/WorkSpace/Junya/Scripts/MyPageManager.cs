@@ -4,8 +4,10 @@ using System.Collections.Generic;
 public class MyPageManager : MonoBehaviour
 {
     public GameObject prefab;
-    public static MyPageManager instance;
+    public GameObject mask;
 
+    public static MyPageManager instance;
+    
     private static List<ConstellationData> MyConstellations;
 
     private static List<Frame> frames;
@@ -35,6 +37,7 @@ public class MyPageManager : MonoBehaviour
         
     }
 
+    
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
@@ -52,9 +55,10 @@ public class MyPageManager : MonoBehaviour
 
         foreach(Frame frame in frames)
         {
-            SkyProject2D.StaticGenerate(frame.data, frame.gameObject.transform.Find("Scaler").Find("Anchor").position);
+            MySkyProject2D.StaticGet(frame.data, frame.gameObject.transform.Find("Scaler").Find("Anchor").position);
 
-            frame.OptimizeConstellationScale();
+            //frame.gameObject.transform.SetParent(this.mask.transform);
+            //frame.OptimizeConstellationScale();
         }
     }
 
@@ -66,7 +70,7 @@ public class MyPageManager : MonoBehaviour
         Camera.main.transform.position = tmp;
     }
 
-    private List<ConstellationData> GetLocalData()
+    public static List<ConstellationData> GetLocalData()
     {
         // 1. キーがあるか確認
         if (!PlayerPrefs.HasKey("LocalSaveList"))

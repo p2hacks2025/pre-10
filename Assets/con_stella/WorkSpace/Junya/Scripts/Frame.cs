@@ -6,13 +6,18 @@ public class Frame
     public readonly ConstellationData data;
     public readonly GameObject gameObject;
 
+    private GameObject Anchor
+    {
+        get => this.gameObject.transform.Find("Scaler").Find("Anchor").gameObject;
+    }
+
     private string Date
     {
         get => this.data.createdAt;
         set
         {
             this.data.createdAt = value;
-            this.gameObject.transform.Find("Scaler").Find("Canvas").Find("Text").gameObject.GetComponent<Text>().text = value.Split(" ")[0].Trim();
+            this.gameObject.transform.Find("Scaler").Find("Canvas").Find("Text").gameObject.GetComponent<Text>().text = value.Split(" ")[0].Replace("/", ".").Trim();
         }
     }
 
@@ -24,17 +29,25 @@ public class Frame
         this.gameObject = MonoBehaviour.Instantiate(MyPageManager.instance.prefab, MyPageManager.instance.transform.position, Quaternion.identity);
         this.Date = this.data.createdAt;
 
+        //GameObject.Find("MySkyManager").transform.GetComponent<MySkyProject2D>().GetConstellationObject(ref data, this.Anchor.transform.position);
     }
-
+    
     public void OptimizeConstellationScale()
     {
-        if(GameObject.Find(this.data.constellationName) != null)
+        if(data.gameObject != null)
         {
             (float width, float height) scale = this.ConstellationScale;
 
-            GameObject.Find(this.data.constellationName).transform.localScale /= Mathf.Max(scale.width, scale.height);
+            data.gameObject.transform.localScale /= Mathf.Max(scale.width, scale.height);
         }
     }
+
+
+    public void Log()
+    {
+        Debug.Log("clicked");
+    }
+
 
     private (float width, float height) ConstellationScale
     {

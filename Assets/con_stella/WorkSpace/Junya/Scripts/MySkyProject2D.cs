@@ -1,9 +1,10 @@
-using UnityEngine;
 using System.Collections.Generic;
+using Unity.VisualScripting;
+using UnityEngine;
 
-public class SkyProject2D : MonoBehaviour
+public class MySkyProject2D : MonoBehaviour
 {
-    public static SkyProject2D instance; // シングルトン化
+    public static MySkyProject2D instance; // シングルトン化
 
     [Header("プレハブ")]
     [SerializeField] private GameObject starPrefab;
@@ -82,6 +83,7 @@ public class SkyProject2D : MonoBehaviour
             return;
         }
 
+        /*
         Debug.Log($"【捜査3】{currentWrapper.list.Count} 件のデータを確認。生成を開始します...");
 
         // 4. 生成ループ
@@ -94,6 +96,7 @@ public class SkyProject2D : MonoBehaviour
 
             GenerateConstellationObject(data, spawnPos);
         }
+        */
     }
 
     public void SaveLocalData()
@@ -133,7 +136,7 @@ public class SkyProject2D : MonoBehaviour
         return new Vector3(Random.Range(-spawnArea.x, spawnArea.x), Random.Range(-spawnArea.y, spawnArea.y), 0);
     }
 
-    public static void StaticGenerate(ConstellationData data, Vector3 position) => GameObject.Find("SkyManager").GetComponent<SkyProject2D>().GenerateConstellationObject(data, position);
+    public static void StaticGenerate(ConstellationData data, Vector3 position) => GameObject.Find("MySkyManager").GetComponent<MySkyProject2D>().GenerateConstellationObject(data, position);
 
     private void GenerateConstellationObject(ConstellationData data, Vector3 position)
     {
@@ -195,11 +198,10 @@ public class SkyProject2D : MonoBehaviour
         UpdateConstellationBloom(data);  //星の輝き更新
     }
 
+    public static void StaticGet(ConstellationData data, Vector3 position) => GameObject.Find("MySkyManager").GetComponent<MySkyProject2D>().GetConstellationObject(ref data, position);
 
     public void GetConstellationObject(ref ConstellationData data, Vector3 position)
     {
-        GameObject starPrefab = GameObject.Find("StarPrefab").gameObject;
-
         GameObject rootObj = new GameObject(data.constellationName);
 
         data.gameObject = rootObj;
@@ -226,6 +228,8 @@ public class SkyProject2D : MonoBehaviour
         foreach (var sData in data.stars)
         {
             GameObject star = Instantiate(starPrefab, rootObj.transform);
+            star.transform.GetComponent<SpriteRenderer>().maskInteraction = SpriteMaskInteraction.VisibleOutsideMask;
+
             Vector3 starPos = new Vector3(sData.x * currentScale, sData.y * currentScale, 0);
             star.transform.localPosition = starPos;
             star.transform.localScale = Vector3.one * sData.scale * currentScale;
@@ -257,24 +261,25 @@ public class SkyProject2D : MonoBehaviour
         float right = data.stars[0].x;
         float left = data.stars[0].x;
 
-        foreach(StarData star in data.stars)
+        foreach (StarData star in data.stars)
         {
             if (up < star.y) up = star.y;
-            if(down > star.y) down = star.y;
-            if(left > star.x) left = star.x;
-            if(right < star.x) right = star.x;
+            if (down > star.y) down = star.y;
+            if (left > star.x) left = star.x;
+            if (right < star.x) right = star.x;
         }
 
         float width = Mathf.Abs(right - left);
         float height = Mathf.Abs(up - down);
 
-        GameObject.Find(data.constellationName).transform.localScale /= Mathf.Max(width/frameWidth, height/frameHeight);
+        GameObject.Find(data.constellationName).transform.localScale /= Mathf.Max(width / frameWidth, height / frameHeight);
     }
 
     private void CreateLine(Vector3 startLocal, Vector3 endLocal, Transform parent, float scale)
     {
         GameObject line = Instantiate(linePrefab, parent);
         LineRenderer lr = line.GetComponent<LineRenderer>();
+        lr.maskInteraction = SpriteMaskInteraction.VisibleOutsideMask;
         lr.useWorldSpace = false;
         lr.positionCount = 2;
         lr.SetPosition(0, startLocal);
@@ -296,6 +301,9 @@ public class SkyProject2D : MonoBehaviour
 
             // 2. 生成 (skyRootがあればその子にする)
             GameObject starObj = Instantiate(starPrefab, spawnPos, Quaternion.identity);
+
+            starObj.transform.GetComponent<SpriteRenderer>().sortingOrder = 3;
+
             if (skyRoot != null) starObj.transform.SetParent(skyRoot);
 
             // 名前を変えておくとわかりやすい（任意）

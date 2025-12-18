@@ -26,6 +26,8 @@ public class ConstellationData : IAttachable
     public int likeCount;
     public bool isLiked = false;  //いいね済みかどうか
 
+    [NonSerialized] public GameObject gameObject;
+
     //データの紐づけのみを行うように変更。（表示は別でやる）
     public void Attach(ref Comment comment)
     {
@@ -83,4 +85,15 @@ public class ConstellationListWrapper
 {
     public List<ConstellationData> list;
 
+    public static ConstellationData GetConstellationByGuid(string guid)
+    {
+        foreach (ConstellationData data in MyPageManager.GetLocalData())
+        {
+            if (data.guid == guid) return data;
+        }
+
+        throw new UndefinedGuidException();
+    }
+
+    private class UndefinedGuidException : Exception { }
 }
