@@ -200,11 +200,9 @@ public class MySkyProject2D : MonoBehaviour
 
     public static void StaticGet(ConstellationData data, Vector3 position) => GameObject.Find("MySkyManager").GetComponent<MySkyProject2D>().GetConstellationObject(ref data, position);
 
-    public void GetConstellationObject(ref ConstellationData data, Vector3 position)
+    public GameObject GetConstellationObject(ref ConstellationData data, Vector3 position)
     {
         GameObject rootObj = new GameObject(data.constellationName);
-
-        data.gameObject = rootObj;
 
         if (skyRoot != null) rootObj.transform.SetParent(skyRoot);
         rootObj.transform.localPosition = position;
@@ -252,6 +250,8 @@ public class MySkyProject2D : MonoBehaviour
             }
         }
         UpdateConstellationBloom(data);  //êØÇÃãPÇ´çXêV
+
+        return rootObj;
     }
 
     private void ScaleConstellationObject(in ConstellationData data, in float frameWidth, in float frameHeight)

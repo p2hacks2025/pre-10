@@ -1,23 +1,38 @@
 using UnityEngine;
 using UnityEngine.UI;
-
+using Cysharp.Threading.Tasks;
 public class Frame
 {
-    public readonly ConstellationData data;
-    public readonly GameObject gameObject;
+    public ConstellationData data;
+    public GameObject gameObject;
 
-    private GameObject Anchor
+    public bool isClicked;@
+
+    public GameObject Anchor
     {
         get => this.gameObject.transform.Find("Scaler").Find("Anchor").gameObject;
     }
+    public GameObject Text
+    {
+        get
+        {
+            Debug.Log(this.gameObject.name);
+            return this.gameObject.transform.Find("Scaler").Find("Canvas").Find("Text").gameObject;
 
-    private string Date
+        }
+    }
+
+    public string Date
     {
         get => this.data.createdAt;
         set
         {
+            //Debug.Log(value);
+            string formatted = value.Split(" ")?[0].Replace("/", ".").Trim();
+            //Debug.Log(formatted);
+
             this.data.createdAt = value;
-            this.gameObject.transform.Find("Scaler").Find("Canvas").Find("Text").gameObject.GetComponent<Text>().text = value.Split(" ")[0].Replace("/", ".").Trim();
+            this.Text.transform.GetComponent<Text>().text = formatted;
         }
     }
 
@@ -25,13 +40,20 @@ public class Frame
     public Frame(ConstellationData data)
     {
         this.data = data;
+        this.isClicked = false;
 
-        this.gameObject = MonoBehaviour.Instantiate(MyPageManager.instance.prefab, MyPageManager.instance.transform.position, Quaternion.identity);
-        this.Date = this.data.createdAt;
+        //this.gameObject = MonoBehaviour.Instantiate(MyPageManager.instance.prefab, MyPageManager.instance.transform.position, Quaternion.identity);
 
         //GameObject.Find("MySkyManager").transform.GetComponent<MySkyProject2D>().GetConstellationObject(ref data, this.Anchor.transform.position);
     }
     
+    public async UniTask Expand()
+    {
+        await UniTask.Yield();
+        Debug.Log("expanded");
+        //this.gameObject.
+    }
+
     public void OptimizeConstellationScale()
     {
         if(data.gameObject != null)
