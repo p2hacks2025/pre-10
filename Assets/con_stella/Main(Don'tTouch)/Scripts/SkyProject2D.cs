@@ -392,18 +392,12 @@ public class SkyProject2D : MonoBehaviour
     {
         if (FirebaseManager.instance != null)
         {
-            FirebaseManager.instance.ListenForShootingStars((data) =>
-            {
-                // 自分以外の星が飛んできたら表示
-                // (自分の星はOnPostStarClickedですぐ表示しているので弾いても良い)
-                if (data.senderName != "自分")
-                {
-                    if (ShootingStarManager.instance != null)
-                    {
-                        ShootingStarManager.instance.SpawnStar(data);
-                    }
-                }
-            });
+            // 1. Firebase側のリスナーを起動（すでに動いていれば無視されるので安全）
+            FirebaseManager.instance.InitShootingStarListener();
+
+            // 2. 「データが届いたときの処理」を登録
+            // 以前の ListenForShootingStars(...) ではなく、C#イベントを使います
+            FirebaseManager.instance.OnShootingStarReceived += HandleShootingStar;
         }
     }
 
@@ -489,6 +483,28 @@ public class SkyProject2D : MonoBehaviour
         else
         {
             Debug.Log("保存されたデータはありません。");
+        }
+    }
+
+    // ★追加: 実際に星を受け取ったときの処理
+    private void HandleShootingStar(ShootingStarData data)
+    {
+        // 自分以外の星が飛んできたら表示
+        if (data.senderName != "自分")
+        {
+            if (ShootingStarManager.instance != null)
+            {
+                ShootingStarManager.instance.SpawnStar(data);
+            }
+        }
+    }
+
+    void OnDestroy()
+    {
+        if (FirebaseManager.instance != null)
+        {
+            // これを忘れるとエラーになるので必ず解除！
+            FirebaseManager.instance.OnShootingStarReceived -= HandleShootingStar;
         }
     }
 }

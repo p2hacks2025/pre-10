@@ -170,14 +170,14 @@ public class ManualUIManager : UIBaseManager
         // 1. 星がない場合
         if (!editor.HasStars)
         {
-            editor.ShowWarning("星が一つもありません！\n画面をタップして星を作ってください");
+            editor.ShowWarning("星が一つもありません！");
             return;
         }
 
         // 2. 線がない場合 (★追加)
         if (!editor.HasConnections)
         {
-            editor.ShowWarning("線が引かれていません！\n星をつないで星座にしてください");
+            editor.ShowWarning("線が引かれていません！");
             return;
         }
 
