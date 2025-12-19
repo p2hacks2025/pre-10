@@ -3,7 +3,7 @@ using UnityEngine;
 [RequireComponent(typeof(SpriteRenderer))]
 public class GradientBackground : MonoBehaviour
 {
-    // ★追加: モード切替用
+    // モード切替用
     public enum SizeMode
     {
         FillMapSize,    // マップ全体を埋める (SkyScene用)
@@ -24,20 +24,30 @@ public class GradientBackground : MonoBehaviour
     [SerializeField] private SkyCameraController skyCameraCon;
 
     [Header("FillCameraViewモード用")]
-    [SerializeField] private Camera targetCamera; // 指定がなければMainCameraを使います
+    [SerializeField] private Camera targetCamera;
 
     private SpriteRenderer _spriteRenderer;
 
+    // 外部からサイズを取得するためのプロパティ
+    public Vector2 CurrentSize { get; private set; }
+
     void Start()
     {
-        _spriteRenderer = GetComponent<SpriteRenderer>();
-        _spriteRenderer.sortingOrder = sortingOrder;
-
-        // グラデーション画像の生成
-        GenerateGradientTexture();
-
-        // モードに応じたサイズ調整
+        // Startで呼ばれたときも念の為チェックして実行
         FitBackground();
+    }
+
+    // ★追加: 安全装置（初期化がまだなら、ここで行う）
+    private void InitializeIfNeeded()
+    {
+        if (_spriteRenderer != null) return; // すでに初期化済みなら何もしない
+
+        _spriteRenderer = GetComponent<SpriteRenderer>();
+        if (_spriteRenderer != null)
+        {
+            _spriteRenderer.sortingOrder = sortingOrder;
+            GenerateGradientTexture(); // 画像生成
+        }
     }
 
     void GenerateGradientTexture()
@@ -50,60 +60,54 @@ public class GradientBackground : MonoBehaviour
         texture.wrapMode = TextureWrapMode.Clamp;
         texture.Apply();
 
-        // 1Unit = 1Pixel の設定でスプライト化 (幅1, 高さ2 のスプライトになる)
         _spriteRenderer.sprite = Sprite.Create(texture, new Rect(0, 0, 1, 2), new Vector2(0.5f, 0.5f), 1f);
     }
 
-    // ★修正: モードによって処理を分岐
+    // 外部から呼ばれる関数
     public void FitBackground()
     {
-        // スプライトの元サイズを取得 (GenerateGradientTextureで 1x2 になっている)
+        // ★修正: 処理の前に必ず初期化チェックを行う！
+        InitializeIfNeeded();
+
+        // それでも失敗していたらリターン（エラー回避）
+        if (_spriteRenderer == null || _spriteRenderer.sprite == null) return;
+
+        // スプライトの元サイズを取得
         Vector2 spriteOriginalSize = _spriteRenderer.sprite.bounds.size;
         float targetWidth = 10f;
         float targetHeight = 10f;
 
         switch (mode)
         {
-            // パターンA: マップの広さに合わせる (SkyScene)
             case SizeMode.FillMapSize:
                 if (skyCameraCon == null) skyCameraCon = FindFirstObjectByType<SkyCameraController>();
 
                 if (skyCameraCon != null)
                 {
-                    targetWidth = skyCameraCon.GetMapSize().x * 1.2f;  // 余白1.2倍
+                    targetWidth = skyCameraCon.GetMapSize().x * 1.2f;
                     targetHeight = skyCameraCon.GetMapSize().y * 1.2f;
-                }
-                else
-                {
-                    Debug.LogWarning("SkyCameraControllerが見つかりません。FillMapSizeモードが正しく動作しません。");
                 }
                 break;
 
-            // パターンB: カメラの表示範囲に合わせる (他シーン)
             case SizeMode.FillCameraView:
                 if (targetCamera == null) targetCamera = Camera.main;
 
                 if (targetCamera != null)
                 {
-                    // Orthographicカメラの縦幅 = size * 2
                     float camHeight = targetCamera.orthographicSize * 2f;
-                    // 横幅 = 縦幅 * アスペクト比
                     float camWidth = camHeight * targetCamera.aspect;
-
-                    // 画面ピッタリより少しだけ大きくして隙間を防ぐ
                     targetWidth = camWidth * 1.05f;
                     targetHeight = camHeight * 1.05f;
-
-                    // カメラ追従させるなら子オブジェクトにするか、Updateで追尾が必要
-                    // 基本的に静止画背景ならカメラの子オブジェクトにすることをお勧めします
                 }
                 break;
         }
 
-        // サイズ適用 (目標 / 元サイズ)
+        // サイズ適用
         float scaleX = targetWidth / spriteOriginalSize.x;
         float scaleY = targetHeight / spriteOriginalSize.y;
 
         transform.localScale = new Vector3(scaleX, scaleY, 1f);
+
+        CurrentSize = new Vector2(targetWidth, targetHeight);
     }
 }
