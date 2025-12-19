@@ -21,7 +21,7 @@ public class UIGlowingBlink : MonoBehaviour
 
         if (targetImage == null)
         {
-            // なければ追加（親切設計）
+            // なければ追加
             targetImage = gameObject.AddComponent<Image>();
         }
     }

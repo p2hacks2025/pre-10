@@ -9,15 +9,36 @@ EditorBuildSettings:
     path: Assets/Scenes/SampleScene.unity
     guid: 8c9cfa26abfee488c85f1582747f6a02
   - enabled: 1
+    path: Assets/con_stella/Main(Don'tTouch)/Scenes/TitleScene.unity
+    guid: 99d0cbbbf2f23974fb8a31cede5b8317
+  - enabled: 1
+    path: Assets/con_stella/Main(Don'tTouch)/Scenes/HomeScene.unity
+    guid: 838a65071991a954e81dafd3a66331c1
+  - enabled: 1
+    path: Assets/con_stella/Main(Don'tTouch)/Scenes/SkyScene.unity
+    guid: e1796f0bd305ac549af4441729e46cf9
+  - enabled: 1
+    path: Assets/con_stella/Main(Don'tTouch)/Scenes/AlbumScene.unity
+    guid: e7e0103fe10b1094ebc739996a4537e0
+  - enabled: 1
+    path: Assets/con_stella/Main(Don'tTouch)/Scenes/PostScene.unity
+    guid: d73206a4a59b23245bca72fcd062a960
+  - enabled: 1
+    path: Assets/con_stella/Main(Don'tTouch)/Scenes/ManualScene.unity
+    guid: 95bbabcb35e9c1f489e864d5f0d043ad
+  - enabled: 1
+    path: Assets/con_stella/Main(Don'tTouch)/Scenes/PhotoScene.unity
+    guid: 39b65a00b5ec0bf499e51102a3a9d6dd
+  - enabled: 0
     path: Assets/con_stella/WorkSpace/Shuto/Scenes/TitleScene.unity
     guid: 144a532d5e03bcb48a732257d310b926
-  - enabled: 1
+  - enabled: 0
     path: Assets/con_stella/WorkSpace/Shuto/Scenes/SkyScene.unity
     guid: ad4a602cbd876b64797aebf091b2c601
-  - enabled: 1
+  - enabled: 0
     path: Assets/con_stella/WorkSpace/Shuto/Scenes/PhotoScene.unity
     guid: 827d1a5b1a4422f4c8cafca1fe5901a0
-  - enabled: 1
+  - enabled: 0
     path: Assets/con_stella/WorkSpace/Shuto/Scenes/ManualScene.unity
     guid: 2e2ed486abecc204b905f22484e4eaaa
   m_configObjects:
