@@ -116,6 +116,11 @@ public class SkyProject2D : MonoBehaviour
     // データ受け取り後の処理
     private void OnDataLoaded(List<ConstellationData> dataList)
     {
+        // 保存されている「いいね済みリスト」を取得
+        string likedGuidsString = PlayerPrefs.GetString("LikedGuids", "");
+        // 判定しやすいようにHashSetに入れる（リストでも可）
+        HashSet<string> likedGuids = new HashSet<string>(likedGuidsString.Split(','));
+
         // 既存のラッパーに入れておく（検索などで使うため）
         if (currentWrapper == null) currentWrapper = new ConstellationListWrapper();
         currentWrapper.list = dataList;
@@ -125,6 +130,12 @@ public class SkyProject2D : MonoBehaviour
         // 全データを生成
         foreach (var data in dataList)
         {
+            // もしリストの中にIDがあれば、いいね済みにする
+            if (likedGuids.Contains(data.guid))
+            {
+                data.isLiked = true;
+            }
+
             // 座標を決めて生成
             Vector3 spawnPos = FindSafePosition();
             GenerateConstellationObject(data, spawnPos);

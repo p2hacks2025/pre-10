@@ -2422,7 +2422,7 @@ MonoBehaviour:
   m_HandleRect: {fileID: 2071199973}
   m_Direction: 2
   m_Value: 1
-  m_Size: 0.9999939
+  m_Size: 1
   m_NumberOfSteps: 0
   m_OnValueChanged:
     m_PersistentCalls:
@@ -2735,11 +2735,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7335012067191496981, guid: 3ae4c87f44d28c149a7715eee455c26b, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 0.18378
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 7335012067191496981, guid: 3ae4c87f44d28c149a7715eee455c26b, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -1.14961
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 7335012067191496981, guid: 3ae4c87f44d28c149a7715eee455c26b, type: 3}
       propertyPath: m_LocalPosition.z
@@ -4317,7 +4317,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: 149.99992}
+  m_AnchoredPosition: {x: 0, y: 150.00005}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0, y: 1}
 --- !u!114 &1863195435
@@ -4974,10 +4974,10 @@ MonoBehaviour:
   starPrefab: {fileID: 6168859803629466862, guid: 84b4ea7b0f5866d42a4c6a0696464e94, type: 3}
   linePrefab: {fileID: 2270894329751712333, guid: 8fa84bea1ab5c7f4bb11721e49c06c19, type: 3}
   skyRoot: {fileID: 1079075819}
-  starAmount: 1000
+  starAmount: 2000
   spawnArea: {x: 60, y: 60}
   maxDisplayScale: 0.005
-  minDisplayScale: 0.003
+  minDisplayScale: 0.0075
   minSingleStarSize: 0.05
   maxSingleStarSize: 0.1
   minBgStarBrightness: 0.5

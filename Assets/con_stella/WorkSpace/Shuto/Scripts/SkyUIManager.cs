@@ -195,6 +195,8 @@ public class SkyUIManager : UIBaseManager
         currentData.likeCount++;
         currentData.isLiked = true;
 
+        // 「このIDをいいねした」と端末に保存する
+        SaveLikedGuid(currentData.guid);
         Debug.Log($"【UI】いいねしました: {currentData.constellationName} -> {currentData.likeCount}");
         
         //  UI更新 (即座に反映)
@@ -213,15 +215,51 @@ public class SkyUIManager : UIBaseManager
         }
     }
 
+    // いいねしたGUIDを保存するヘルパー関数
+    private void SaveLikedGuid(string guid)
+    {
+        string key = "LikedGuids";
+        string currentSaved = PlayerPrefs.GetString(key, "");
+
+        // まだ保存されていなければ追加 (カンマ区切りで保存)
+        if (!currentSaved.Contains(guid))
+        {
+            if (string.IsNullOrEmpty(currentSaved))
+            {
+                currentSaved = guid;
+            }
+            else
+            {
+                currentSaved += "," + guid;
+            }
+            PlayerPrefs.SetString(key, currentSaved);
+            PlayerPrefs.Save();
+        }
+    }
+
     // UIの表示だけを更新するヘルパー関数
     private void UpdateLikeUI()
     {
         if (currentData == null) return;
 
+        // ★追加: 自分の投稿かどうか判定する
+        string myGuids = PlayerPrefs.GetString("MyConstellationGuids", "");
+        bool isMine = myGuids.Contains(currentData.guid);
+
         // 1. テキスト更新
         if (likeCountText != null)
         {
-            likeCountText.text = currentData.likeCount.ToString();
+            if (isMine)
+            {
+                // 自分のだから数字を見せる
+                likeCountText.text = currentData.likeCount.ToString();
+                likeCountText.gameObject.SetActive(true); // 表示
+            }
+            else
+            {
+                // 他人のは隠す
+                likeCountText.gameObject.SetActive(false); // 完全に消したい場合はこちら
+            }
         }
         else
         {

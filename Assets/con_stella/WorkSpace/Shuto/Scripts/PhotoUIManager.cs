@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using System.Collections;
+using UnityEngine.SceneManagement;
 
 public class PhotoUIManager : UIBaseManager
 {
@@ -12,8 +13,13 @@ public class PhotoUIManager : UIBaseManager
     [SerializeField] private TextMeshProUGUI placeholderText; // プレースホルダー（入力例）
     [SerializeField] private TextMeshProUGUI buttonText;      // 「次へ」「保存」などのボタン文字
 
+    [Header("投稿演出")]
+    [SerializeField] private CanvasGroup postMessageCanvasGroup; // フェード用
+    [SerializeField] private float fadeDuration = 1.5f;
+
     [Header("参照")]
     [SerializeField] private ConstellationGenerator generator; // 保存処理を持つスクリプト
+    [SerializeField] private PhotoController photoController;
 
     // 内部データ保持用
     private string tempName = "";
@@ -32,7 +38,12 @@ public class PhotoUIManager : UIBaseManager
         base.Start();
 
         // 最初は隠しておく（念の為）
-        conSettingPanel.anchoredPosition = new Vector2(0, -panelHeight);
+        if (conSettingPanel != null) conSettingPanel.anchoredPosition = new Vector2(0, -panelHeight);
+        if (postMessageCanvasGroup != null)
+        {
+            postMessageCanvasGroup.alpha = 0f;
+            postMessageCanvasGroup.gameObject.SetActive(false);
+        }
     }
 
     // 入力パネルを表示開始する
@@ -52,6 +63,19 @@ public class PhotoUIManager : UIBaseManager
         // 4. パネルを出すアニメーション開始
         if (currentAnimation != null) StopCoroutine(currentAnimation);
         currentAnimation = StartCoroutine(SlidePanel(0));
+    }
+
+    // キャンセル（やり直し）ボタン
+    public void OnCancelButtonClicked()
+    {
+        // 1. パネルを閉じる
+        OnCloseButtonClicked();
+
+        // 2. システム全体をリセット（画像消去など）
+        if (photoController != null)
+        {
+            photoController.ResetSystem();
+        }
     }
 
     //OKボタンを押したときの処理
@@ -114,15 +138,88 @@ public class PhotoUIManager : UIBaseManager
     {
         if (generator != null)
         {
-            // Generator側のメソッドを呼ぶ
-            generator.RegisterConstellationData(tempName, tempDescription);
+            // データを登録して、結果(data)を受け取る
+            ConstellationData data = generator.RegisterConstellationData(tempName, tempDescription);
+
+            // ★修正: データが正しく返ってきたら、投稿演出(PostSequence)を開始する
+            if (data != null)
+            {
+                StartCoroutine(PostSequence(data));
+            }
+            else
+            {
+                // データ生成失敗時は閉じるだけにする（エラーハンドリング）
+                OnCloseButtonClicked();
+            }
         }
         else
         {
             Debug.LogError("ConstellationGeneratorがセットされていません！");
+            OnCloseButtonClicked();
+        }
+    }
+
+    // ★追加: ManualSceneと同じ投稿演出
+    private IEnumerator PostSequence(ConstellationData data)
+    {
+        Debug.Log($"投稿完了: {data.constellationName}");
+
+        // 次のシーンでカメラを向けるために保存
+        PlayerPrefs.SetString("NextFocusGUID", data.guid);
+        // 「自分の星座リスト」にこのGUIDを追加保存する
+        SaveMyConstellationGuid(data.guid);
+        PlayerPrefs.Save();
+
+        // パネルを閉じる
+        OnCloseButtonClicked();
+
+        // フェードイン演出
+        if (postMessageCanvasGroup != null)
+        {
+            postMessageCanvasGroup.gameObject.SetActive(true);
+            postMessageCanvasGroup.alpha = 0f;
+
+            float timer = 0f;
+            while (timer < fadeDuration)
+            {
+                timer += Time.deltaTime;
+                postMessageCanvasGroup.alpha = Mathf.Lerp(0f, 1f, timer / fadeDuration);
+                yield return null;
+            }
+            postMessageCanvasGroup.alpha = 1f;
+            yield return new WaitForSeconds(0.5f);
+        }
+        else
+        {
+            yield return new WaitForSeconds(1.0f);
         }
 
-        // パネルを閉じる（親クラスのメソッド）
-        OnCloseButtonClicked();
+        yield return new WaitForSeconds(1.0f);
+
+        // シーン遷移
+        SceneManager.LoadScene("SkyScene");
+    }
+
+    // ★追加: GUIDをカンマ区切りで保存するヘルパー関数
+    // (ManualUIManager と PhotoUIManager の両方の末尾に追加してください)
+    private void SaveMyConstellationGuid(string guid)
+    {
+        string key = "MyConstellationGuids";
+        string currentSaved = PlayerPrefs.GetString(key, "");
+
+        // まだリストになければ追加
+        if (!currentSaved.Contains(guid))
+        {
+            if (string.IsNullOrEmpty(currentSaved))
+            {
+                currentSaved = guid;
+            }
+            else
+            {
+                currentSaved += "," + guid;
+            }
+            PlayerPrefs.SetString(key, currentSaved);
+            PlayerPrefs.Save();
+        }
     }
 }

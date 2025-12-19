@@ -137,10 +137,10 @@ public class ConstellationGenerator : MonoBehaviour
         generatedContoursData.Clear();
     }
     
-    public void RegisterConstellationData(string name, string description)
+    public ConstellationData RegisterConstellationData(string name, string description)
     {
         // 生成された星座データがない場合は中断
-        if (generatedContoursData == null || generatedContoursData.Count == 0) return;
+        if (generatedContoursData == null || generatedContoursData.Count == 0) return null;
 
         ConstellationData saveData = new ConstellationData();
 
@@ -203,6 +203,8 @@ public class ConstellationGenerator : MonoBehaviour
         //SaveToLocal(saveData);
         //クラウドに保存
         SaveToFireBase(saveData);
+        //作成したデータを返す（UI側でGUIDを使うため）
+        return saveData;
     }
 
     // データを受け取ってローカルに保存する専用関数

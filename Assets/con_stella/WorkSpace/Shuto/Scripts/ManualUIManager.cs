@@ -284,9 +284,11 @@ public class ManualUIManager : UIBaseManager
     {
         Debug.Log($"投稿完了: {data.constellationName}");
         PlayerPrefs.SetString("NextFocusGUID", data.guid);
+        // 「自分の星座リスト」にこのGUIDを追加保存する
+        SaveMyConstellationGuid(data.guid);
         PlayerPrefs.Save();
         OnCloseButtonClicked();  //パネルを閉じる
-        // ★追加: フェードイン演出
+        // フェードイン演出
         if (postMessageCanvasGroup != null)
         {
             // まず表示状態にして、完全に透明にする
@@ -348,5 +350,28 @@ public class ManualUIManager : UIBaseManager
         SwitchPanel(null, panelHiddenOffset, () => {
             // アニメーション完了後の処理が必要ならここに書く
         });
+    }
+
+    // ★追加: GUIDをカンマ区切りで保存するヘルパー関数
+    // (ManualUIManager と PhotoUIManager の両方の末尾に追加してください)
+    private void SaveMyConstellationGuid(string guid)
+    {
+        string key = "MyConstellationGuids";
+        string currentSaved = PlayerPrefs.GetString(key, "");
+
+        // まだリストになければ追加
+        if (!currentSaved.Contains(guid))
+        {
+            if (string.IsNullOrEmpty(currentSaved))
+            {
+                currentSaved = guid;
+            }
+            else
+            {
+                currentSaved += "," + guid;
+            }
+            PlayerPrefs.SetString(key, currentSaved);
+            PlayerPrefs.Save();
+        }
     }
 }

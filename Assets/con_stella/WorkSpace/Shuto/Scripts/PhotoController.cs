@@ -1,13 +1,16 @@
 using UnityEngine;
 using UnityEngine.UI;
 using System.Collections;
-using System.Collections.Generic; // ★これがないと List<> エラーが出ます
+using System.Collections.Generic;
+using TMPro;
 
 public class PhotoController : MonoBehaviour
 {
     [Header("UI設定")]
     [SerializeField] private RawImage previewImage;
-    [SerializeField] private Text statusText;
+    [SerializeField] private TextMeshProUGUI statusText;
+
+    [SerializeField] private GameObject frameObject;
 
     [Header("連携設定")]
     [SerializeField] private EdgeDetector edgeDetector;
@@ -27,13 +30,15 @@ public class PhotoController : MonoBehaviour
         if (previewImage != null)
         {
             previewImage.rectTransform.sizeDelta = new Vector2(MaxImageSize, MaxImageSize);
-            defaultPhotoColor = previewImage.color;
+            defaultPhotoColor = new Color(1f, 1f, 1f, 0f);
+            previewImage.color = defaultPhotoColor;
         }
 
         if (constellationCanvasGroup != null)
         {
             constellationCanvasGroup.alpha = 0f;
         }
+        if (frameObject != null) frameObject.SetActive(true);
     }
 
     public void OnClickCamera()
@@ -79,6 +84,9 @@ public class PhotoController : MonoBehaviour
         // 横幅を800pxとして計算（この値を基準にスケール計算します）
         float displayWidth = 800f;
         previewImage.rectTransform.sizeDelta = new Vector2(displayWidth, displayWidth / aspect);
+        
+        // 写真を読み込んだ直後は、まず不透明(Alpha=1)にして表示する
+        previewImage.color = Color.white;
 
         UpdateStatus("解析を開始します...");
 
@@ -109,8 +117,11 @@ public class PhotoController : MonoBehaviour
 
     private void ResetViewBeforeAnimation()
     {
-        previewImage.color = defaultPhotoColor;
+        previewImage.color = new Color(1f, 1f, 1f, 0f);
+        previewImage.texture = null; // テクスチャも外す
         if (constellationCanvasGroup != null) constellationCanvasGroup.alpha = 0f;
+        // 枠線を表示状態に戻す
+        if (frameObject != null) frameObject.SetActive(true);
     }
 
     private IEnumerator PlayGenerationSequence()
@@ -137,8 +148,9 @@ public class PhotoController : MonoBehaviour
         while (elapsed < fadeDuration)
         {
             elapsed += Time.deltaTime;
-            float newAlpha = Mathf.Lerp(defaultPhotoColor.a, 0f, elapsed / fadeDuration);
-            previewImage.color = new Color(defaultPhotoColor.r, defaultPhotoColor.g, defaultPhotoColor.b, newAlpha);
+            // 写真(previewImage)を透明にしていく
+            float newAlpha = Mathf.Lerp(1f, 0f, elapsed / fadeDuration);
+            previewImage.color = new Color(1f, 1f, 1f, newAlpha);
             yield return null;
         }
         previewImage.color = new Color(defaultPhotoColor.r, defaultPhotoColor.g, defaultPhotoColor.b, 0f);
@@ -146,6 +158,22 @@ public class PhotoController : MonoBehaviour
         uiManager.ShowSettingPanel();
 
         UpdateStatus("生成完了！");
+    }
+
+    // 全部リセットして最初に戻る機能
+    public void ResetSystem()
+    {
+        // 画像を破棄
+        if (currentTexture != null) Destroy(currentTexture);
+
+        // 表示をリセット
+        ResetViewBeforeAnimation();
+
+        // 星座を消去
+        if (constellationGenerator != null) constellationGenerator.ClearConstellation();
+
+        // メッセージ更新
+        UpdateStatus("写真を撮るか、アルバムから選んでください");
     }
 
     private void UpdateStatus(string msg)

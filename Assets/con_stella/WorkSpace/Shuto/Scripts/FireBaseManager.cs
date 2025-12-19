@@ -12,6 +12,9 @@ public class FirebaseManager : MonoBehaviour
     private DatabaseReference reference;
     private bool isFirebaseReady = false;
 
+    // 星座の保存上限数
+    [SerializeField] private int maxConstellationCount = 100;
+
     // メインスレッドで処理を実行するためのキュー
     private Queue<Action> _executionQueue = new Queue<Action>();
 
@@ -31,7 +34,6 @@ public class FirebaseManager : MonoBehaviour
     void Update()
     {
         // メインスレッド（Update）でキューに溜まった処理を実行する
-        // これがないと、受信時に「Unityの機能が使えません」というエラーになります
         lock (_executionQueue)
         {
             while (_executionQueue.Count > 0)
@@ -61,9 +63,11 @@ public class FirebaseManager : MonoBehaviour
         });
     }
 
-    // =================================================================
-    // 1. 星座を保存 (Manual / Photo / Reply 共通)
-    // =================================================================
+    /// <summary>
+    ///  星座を保存 (Manual / Photo / Reply 共通)
+    /// </summary>
+    /// <param name="data"></param>
+    /// <param name="onComplete"></param>
     public void SaveConstellation(ConstellationData data, Action<bool> onComplete = null)
     {
         if (!isFirebaseReady)
@@ -83,6 +87,7 @@ public class FirebaseManager : MonoBehaviour
                 if (task.IsCompleted)
                 {
                     Debug.Log($"【Firebase】保存完了: {data.constellationName}");
+                    CleanUpOldConstellations();  //古いものを削除するかを見る
                     onComplete?.Invoke(true);
                 }
                 else
@@ -93,9 +98,42 @@ public class FirebaseManager : MonoBehaviour
             });
     }
 
-    // =================================================================
-    // 2. 全データを読み込み (SkyProject2D用)
-    // =================================================================
+    /// <summary>
+    /// 星座データの削除
+    /// </summary>
+    private void CleanUpOldConstellations()
+    {
+        // データの作成順（キー順）に取得
+        reference.Child("constellations").OrderByKey().GetValueAsync().ContinueWithOnMainThread(task =>
+        {
+            if (task.IsFaulted || !task.IsCompleted) return;
+
+            DataSnapshot snapshot = task.Result;
+            long currentCount = snapshot.ChildrenCount;
+
+            // 上限を超えているかチェック
+            if (currentCount > maxConstellationCount)
+            {
+                long deleteCount = currentCount - maxConstellationCount;
+                Debug.Log($"【Firebase】容量オーバー: {currentCount}/{maxConstellationCount} 件。古い {deleteCount} 件を削除します。");
+
+                int deleted = 0;
+                foreach (DataSnapshot child in snapshot.Children)
+                {
+                    if (deleted >= deleteCount) break;
+
+                    // 古いデータを削除
+                    reference.Child("constellations").Child(child.Key).RemoveValueAsync();
+                    deleted++;
+                }
+            }
+        });
+    }
+
+    /// <summary>
+    /// 全データ読み込み
+    /// </summary>
+    /// <param name="onSuccess"></param>
     public void LoadAllConstellations(Action<List<ConstellationData>> onSuccess)
     {
         if (!isFirebaseReady) return;
@@ -127,9 +165,11 @@ public class FirebaseManager : MonoBehaviour
         });
     }
 
-    // =================================================================
-    // 3. いいね数の更新 (SkyUIManager用)
-    // =================================================================
+    /// <summary>
+    /// いいね数更新
+    /// </summary>
+    /// <param name="guid"></param>
+    /// <param name="currentCount"></param>
     public void AddLike(string guid, int currentCount)
     {
         if (!isFirebaseReady) return;
@@ -138,22 +178,49 @@ public class FirebaseManager : MonoBehaviour
         reference.Child("constellations").Child(guid).Child("likeCount").SetValueAsync(currentCount);
     }
 
-    // =================================================================
-    // 4. 流れ星の保存 (ShootingStar)
-    // =================================================================
+    /// <summary>
+    /// 流れ星データの保存関数
+    /// </summary>
+    /// <param name="data"></param>
     public void SaveShootingStar(ShootingStarData data)
     {
         if (!isFirebaseReady) return;
 
-        // "shooting_stars" という新しいフォルダを作って保存
-        // Push()を使うと、ユニークなIDを自動で振ってくれる（履歴として残る）
         string json = JsonUtility.ToJson(data);
-        reference.Child("shooting_stars").Push().SetRawJsonValueAsync(json);
+
+        // Push()で作った場所の参照（リファレンス）を保持しておく
+        DatabaseReference newStarRef = reference.Child("shooting_stars").Push();
+
+        newStarRef.SetRawJsonValueAsync(json).ContinueWithOnMainThread(task =>
+        {
+            if (task.IsCompleted)
+            {
+                // 30秒後にこのデータを削除するタイマーを開始
+                StartCoroutine(DeleteShootingStarDelayed(newStarRef, 30f));
+            }
+        });
     }
 
-    // =================================================================
-    // 5. 流れ星の受信 (SkyProject2D用)
-    // =================================================================
+    /// <summary>
+    /// 時間差でデータを消すコルーチン
+    /// </summary>
+    /// <param name="targetRef"></param>
+    /// <param name="delay"></param>
+    /// <returns></returns>
+    private IEnumerator DeleteShootingStarDelayed(DatabaseReference targetRef, float delay)
+    {
+        // 指定秒数待つ（相手に届くための猶予時間）
+        yield return new WaitForSeconds(delay);
+
+        // 削除実行
+        targetRef.RemoveValueAsync();
+        Debug.Log("【Firebase】流れ星データをクリーンアップしました");
+    }
+
+    /// <summary>
+    /// 流れ星を受信する関数
+    /// </summary>
+    /// <param name="onStarReceived"></param>
     public void ListenForShootingStars(Action<ShootingStarData> onStarReceived)
     {
         if (!isFirebaseReady) return;
