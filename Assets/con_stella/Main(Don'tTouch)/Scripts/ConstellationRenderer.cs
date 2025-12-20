@@ -50,7 +50,12 @@ public class ConstellationRenderer : MonoBehaviour
             }
         }
 
-        UpdateBloom(rootObj.transform, data, 1.0f); // 初期輝き
+        // SkyProject2Dのインスタンスが存在する場合のみ、輝きを更新する
+        if (SkyProject2D.instance != null)
+        {
+            SkyProject2D.instance.UpdateBloom(rootObj.transform, data);
+        }
+
         return rootObj;
     }
 
@@ -62,12 +67,5 @@ public class ConstellationRenderer : MonoBehaviour
         lr.positionCount = 2;
         lr.SetPositions(new Vector3[] { start, end });
         lr.widthMultiplier = baseLineWidth * scale;
-    }
-
-    public void UpdateBloom(Transform target, ConstellationData data, float baseIntensity)
-    {
-        float intensity = baseIntensity + (data.likeCount * 0.2f);
-        Color hdrColor = new Color(intensity, intensity, intensity, 1f);
-        foreach (var sr in target.GetComponentsInChildren<SpriteRenderer>()) sr.color = hdrColor;
     }
 }

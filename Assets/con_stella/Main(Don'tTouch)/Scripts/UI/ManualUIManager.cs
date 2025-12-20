@@ -53,12 +53,10 @@ public class ManualUIManager : UIBaseManager
         if (postPanel != null)
         {
             postPanel.anchoredPosition = new Vector2(0, panelHiddenOffset);
-            postPanel.gameObject.SetActive(false);
         }
         if (deletePopupPanel != null)
         {
             deletePopupPanel.anchoredPosition = new Vector2(0, panelHiddenOffset);
-            deletePopupPanel.gameObject.SetActive(false);
         }
 
         UpdateHistoryButtons();
@@ -191,6 +189,7 @@ public class ManualUIManager : UIBaseManager
 
             case InputState.Description:
                 FinalizePost(inputText);
+                Debug.Log("ƒ{ƒ^ƒ“‚Í”½‰ž‚µ‚Ä‚Ü‚·");
                 break;
         }
     }

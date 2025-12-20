@@ -527,6 +527,50 @@ MonoBehaviour:
     m_VarianceClampScale: 0.9
     m_ContrastAdaptiveSharpening: 0
   m_Version: 2
+--- !u!1 &1373704020
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1373704022}
+  - component: {fileID: 1373704021}
+  m_Layer: 0
+  m_Name: DataManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1373704021
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1373704020}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e80c422d10d6325488e6d5537dc7eb23, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DataManager
+--- !u!4 &1373704022
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1373704020}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &1443172383
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -874,6 +918,54 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1938434808}
   m_CullTransparentMesh: 1
+--- !u!1 &1942714591
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1942714593}
+  - component: {fileID: 1942714592}
+  m_Layer: 0
+  m_Name: ConstellationRenderer
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1942714592
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1942714591}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9f246240a992dc74a8b56117632d0996, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ConstellationRenderer
+  starPrefab: {fileID: 6168859803629466862, guid: 9239ff16f5b94b6458bfd64762f27a0b, type: 3}
+  linePrefab: {fileID: 2270894329751712333, guid: 12007a0a7c424e341ab55cab309ccfce, type: 3}
+  colliderSizeRate: 2
+  baseLineWidth: 3
+--- !u!4 &1942714593
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1942714591}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!224 &15766924158154350
 RectTransform:
   m_ObjectHideFlags: 0
@@ -1381,8 +1473,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: "\u200B"
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 38341a98bff2d4243b91a5b70f62eb1e, type: 2}
-  m_sharedMaterial: {fileID: -1991279713479306777, guid: 38341a98bff2d4243b91a5b70f62eb1e, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -2406,8 +2498,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: "\u89B3\u6E2C\u3057\u305F\u661F\u5EA7\u306B\u8FD4\u4FE1\u3059\u308B..."
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 38341a98bff2d4243b91a5b70f62eb1e, type: 2}
-  m_sharedMaterial: {fileID: -1991279713479306777, guid: 38341a98bff2d4243b91a5b70f62eb1e, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -3033,8 +3125,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: "\u661F\u5EA7\u540D"
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 38341a98bff2d4243b91a5b70f62eb1e, type: 2}
-  m_sharedMaterial: {fileID: -1991279713479306777, guid: 38341a98bff2d4243b91a5b70f62eb1e, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -3153,8 +3245,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: "\u200B"
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 38341a98bff2d4243b91a5b70f62eb1e, type: 2}
-  m_sharedMaterial: {fileID: -1991279713479306777, guid: 38341a98bff2d4243b91a5b70f62eb1e, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -3294,8 +3386,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8ab21b42555a5124f9c77009a0c02dc1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SkyProject2D
-  starPrefab: {fileID: 6168859803629466862, guid: 84b4ea7b0f5866d42a4c6a0696464e94, type: 3}
-  linePrefab: {fileID: 2270894329751712333, guid: 12007a0a7c424e341ab55cab309ccfce, type: 3}
+  singleStarPrefab: {fileID: 6168859803629466862, guid: 9239ff16f5b94b6458bfd64762f27a0b, type: 3}
   skyRoot: {fileID: 6380971476836229077}
   starAmount: 2000
   spawnArea: {x: 60, y: 60}
@@ -3309,7 +3400,8 @@ MonoBehaviour:
   cameraController: {fileID: 723703670}
   collisionCheckRadius: 10
   maxRetryCount: 10
-  baseIntensity: 1
+  renderer: {fileID: 1942714592}
+  baseIntensity: 1.1
   intensityPerLike: 0.5
   maxIntensity: 4
   currentWrapper:
@@ -3675,10 +3767,10 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "\u661F\u306B\u30B3\u30E1\u30F3\u30C8\u3092\u8A17\u3057\u307E\u3057\u3087\u3046..."
+  m_text: "\u6D41\u308C\u661F\u306B\u30B3\u30E1\u30F3\u30C8\u3092\u8A17\u3057\u307E\u3057\u3087\u3046..."
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 38341a98bff2d4243b91a5b70f62eb1e, type: 2}
-  m_sharedMaterial: {fileID: -1991279713479306777, guid: 38341a98bff2d4243b91a5b70f62eb1e, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -4152,7 +4244,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: 149.99948}
+  m_AnchoredPosition: {x: 0, y: 149.99982}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0, y: 1}
 --- !u!224 &7209300036386143204
@@ -4237,7 +4329,7 @@ MonoBehaviour:
   m_HandleRect: {fileID: 4688852939606983385}
   m_Direction: 2
   m_Value: 1
-  m_Size: 1
+  m_Size: 0.99999225
   m_NumberOfSteps: 0
   m_OnValueChanged:
     m_PersistentCalls:
@@ -5002,8 +5094,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: "\u89B3\u6E2C\u3057\u305F\u661F\u5EA7\u306B\u8FD4\u4FE1..."
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 38341a98bff2d4243b91a5b70f62eb1e, type: 2}
-  m_sharedMaterial: {fileID: -1991279713479306777, guid: 38341a98bff2d4243b91a5b70f62eb1e, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -5098,3 +5190,5 @@ SceneRoots:
   - {fileID: 5017364705724194432}
   - {fileID: 5217209838234999300}
   - {fileID: 693702374}
+  - {fileID: 1373704022}
+  - {fileID: 1942714593}
