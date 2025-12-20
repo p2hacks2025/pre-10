@@ -122,17 +122,25 @@ public class SkyCameraController : MonoBehaviour
 
             if (trigger != null)
             {
-                // ★修正: 滑らかにズーム
+                ConstellationData data = trigger.GetData();
+
+                // データがnullなら詳細を開かない
+                if (data == null)
+                {
+                    Debug.LogWarning("クリックされたオブジェクトに星座データが保持されていません。");
+                    return;
+                }
+
+                // 滑らかにズーム
                 FocusOnTarget(hit.transform.position);
 
                 isInputLocked = true;
-                ConstellationData data = trigger.GetData();
                 uiManager.ShowDetail(data);
             }
         }
     }
 
-    // ★追加: スマホのピンチズーム処理
+    // スマホのピンチズーム処理
     private void HandleTouchZoom()
     {
         // タッチパネルがない、または指が2本ない場合は無視
@@ -232,7 +240,7 @@ public class SkyCameraController : MonoBehaviour
         currentMoveCoroutine = StartCoroutine(SmoothMoveRoutine(finalPos, targetZoom));
     }
 
-    // ★追加: アニメーション用コルーチン
+    // アニメーション用コルーチン
     private IEnumerator SmoothMoveRoutine(Vector3 targetPos, float targetZoom)
     {
         // ほぼ目標値になるまでループ

@@ -88,15 +88,29 @@ public class SkyUIManager : UIBaseManager
     // =================================================
     public void ShowDetail(ConstellationData data)
     {
+        // データ自体がnullの場合は処理を中断する
+        if (data == null)
+        {
+            Debug.LogError("【UIエラー】表示しようとした星座データがnullです。");
+            return;
+        }
+
         currentData = data;
 
-        // ★デバッグ: どのデータが開かれたか確認
+        // ★修正：各プロパティのnullチェックを強化
+        string constellationName = string.IsNullOrEmpty(data.constellationName) ? "無題の星座" : data.constellationName;
+        string description = string.IsNullOrEmpty(data.description) ? "説明はありません。" : data.description;
+
+        // どのデータが開かれたか確認
         Debug.Log($"【UI】詳細表示: {data.constellationName} (Like: {data.likeCount}, IsLiked: {data.isLiked})");
 
         if (nameText) nameText.text = data.constellationName;
 
-        SetDescriptionWithPrefab(detailDescriptionRoot, data.description); //説明文表示
-        
+        if (detailDescriptionRoot != null)
+        {
+            SetDescriptionWithPrefab(detailDescriptionRoot, description);
+        }
+
         if (listContentRoot)
         {
             foreach (Transform child in listContentRoot) Destroy(child.gameObject);
@@ -105,7 +119,7 @@ public class SkyUIManager : UIBaseManager
             {
                 foreach (var childComment in data.root.children)
                 {
-                    //ヘルパー関数を使って生成処理を共通化
+                    if (childComment == null) continue;
                     CreateCommentObject(listContentRoot, childComment.GetContent(), true);
                 }
             }
@@ -240,9 +254,9 @@ public class SkyUIManager : UIBaseManager
     // UIの表示だけを更新するヘルパー関数
     private void UpdateLikeUI()
     {
-        if (currentData == null) return;
+        if (currentData == null || string.IsNullOrEmpty(currentData.guid)) return; // guidがnullなら判定不能
 
-        // ★追加: 自分の投稿かどうか判定する
+        // 自分の投稿かどうか判定する
         string myGuids = PlayerPrefs.GetString("MyConstellationGuids", "");
         bool isMine = myGuids.Contains(currentData.guid);
 

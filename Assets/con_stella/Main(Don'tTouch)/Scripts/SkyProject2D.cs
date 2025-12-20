@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections.Generic;
+using Junya;
 
 public class SkyProject2D : MonoBehaviour
 {
@@ -116,6 +117,8 @@ public class SkyProject2D : MonoBehaviour
     // データ受け取り後の処理
     private void OnDataLoaded(List<ConstellationData> dataList)
     {
+        if (dataList == null) return;
+
         // 保存されている「いいね済みリスト」を取得
         string likedGuidsString = PlayerPrefs.GetString("LikedGuids", "");
         // 判定しやすいようにHashSetに入れる（リストでも可）
@@ -130,6 +133,13 @@ public class SkyProject2D : MonoBehaviour
         // 全データを生成
         foreach (var data in dataList)
         {
+            //修正、追加の過程で壊れた星座データをガン無視
+            if (data == null || string.IsNullOrEmpty(data.guid) || data.stars == null || data.stars.Count == 0)
+            {
+                Debug.LogWarning($"不完全な星座データ（星リスト空など）のためスキップしました: {data?.constellationName ?? "Unknown"}");
+                continue;
+            }
+
             // もしリストの中にIDがあれば、いいね済みにする
             if (likedGuids.Contains(data.guid))
             {
@@ -230,11 +240,27 @@ public class SkyProject2D : MonoBehaviour
         return new Vector3(Random.Range(-spawnArea.x, spawnArea.x), Random.Range(-spawnArea.y, spawnArea.y), 0);
     }
 
+    // 生成直前に、データが新しい仕様（rootやリストが初期化されているか）に適合しているか確認する
+    private void EnsureDataIntegrity(ConstellationData data)
+    {
+        if (data == null) return;
+        if (data.stars == null) data.stars = new List<StarData>();
+        if (data.connections == null) data.connections = new List<ConnectionData>();
+        if (data.root == null) data.root = new Comment("Root"); // 古いデータにrootを付与
+    }
+
     public static void StaticGenerate(ConstellationData data, Vector3 position) => GameObject.Find("SkyManager").
         GetComponent<SkyProject2D>().GenerateConstellationObject(data, position);
 
     private void GenerateConstellationObject(ConstellationData data, Vector3 position)
     {
+        EnsureDataIntegrity(data);  //データの補完
+
+        if (data == null) return;
+        // リストがnullで復元されていたら空のリストを入れて初期化する（クラッシュ防止）
+        if (data.stars == null) data.stars = new List<StarData>();
+        
+        if (data.connections == null) data.connections = new List<ConnectionData>();
         // 5. プレハブチェック
         if (starPrefab == null || linePrefab == null)
         {
@@ -246,7 +272,12 @@ public class SkyProject2D : MonoBehaviour
             Debug.LogWarning("※ SkyRoot がセットされていません（生成はされますが整理されません）");
         }
 
-        string objectName = string.IsNullOrEmpty(data.guid) ? data.constellationName : data.guid;
+        //名前が空なら、代替名を命名
+        string objectName = string.IsNullOrEmpty(data.guid) ?
+                        (string.IsNullOrEmpty(data.constellationName) ? "Unknown" : data.constellationName)
+                        : data.guid;
+
+        
         GameObject rootObj = new GameObject(objectName);
         if (skyRoot != null) rootObj.transform.SetParent(skyRoot);
         rootObj.transform.localPosition = position;
@@ -269,6 +300,8 @@ public class SkyProject2D : MonoBehaviour
         // 星
         foreach (var sData in data.stars)
         {
+            if (sData == null) continue;
+
             GameObject star = Instantiate(starPrefab, rootObj.transform);
             Vector3 starPos = new Vector3(sData.x * currentScale, sData.y * currentScale, 0);
             star.transform.localPosition = starPos;
@@ -283,6 +316,8 @@ public class SkyProject2D : MonoBehaviour
         // 線
         foreach (var cData in data.connections)
         {
+            if (cData == null) continue;
+
             if (idToObjMap.ContainsKey(cData.fromStarId) && idToObjMap.ContainsKey(cData.toStarId))
             {
                 CreateLine(idToObjMap[cData.fromStarId].transform.localPosition,
@@ -297,6 +332,8 @@ public class SkyProject2D : MonoBehaviour
 
     public void GetConstellationObject(ref ConstellationData data, Vector3 position)
     {
+        EnsureDataIntegrity(data);  //データが古いと、補完される
+
         GameObject starPrefab = GameObject.Find("StarPrefab").gameObject;
 
         GameObject rootObj = new GameObject(data.constellationName);
