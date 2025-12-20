@@ -19,7 +19,6 @@ public class SkyProject2D : MonoBehaviour
     [SerializeField] private float maxSingleStarSize = 1.5f;
     [SerializeField] private float minBgStarBrightness = 0.5f; // 暗め
     [SerializeField] private float maxBgStarBrightness = 1.5f; // 少し光る
-    [SerializeField] private float baseLineWidth = 2.0f;
 
     [Header("UI連携")]
     [SerializeField] private SkyCameraController cameraController;
@@ -27,7 +26,7 @@ public class SkyProject2D : MonoBehaviour
     [Header("生成設定")]
     [SerializeField] private float collisionCheckRadius = 10f; // この半径内に他の星座があったら配置し直す
     [SerializeField] private int maxRetryCount = 10; // 配置場所が見つからない時の最大再試行回数
-    [SerializeField] private ConstellationRenderer renderer; // 星座の生成スクリプト参照
+    [SerializeField] new private ConstellationRenderer renderer; // 星座の生成スクリプト参照
 
     [Header("いいね演出 (Bloom用HDR設定)")]
     [SerializeField] private float baseIntensity = 1.0f;     // 通常時の明るさ (1.0 = そのまま)

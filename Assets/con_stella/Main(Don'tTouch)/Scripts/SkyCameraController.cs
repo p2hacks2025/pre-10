@@ -24,7 +24,7 @@ public class SkyCameraController : MonoBehaviour
 
     private bool isInputLocked = false;
 
-    private Vector3 dragStartPos;
+    private Vector2 lastScreenPos;
     private Vector2 clickStartScreenPos;
     private bool isDragging = false;
     private Camera cam;
@@ -47,13 +47,7 @@ public class SkyCameraController : MonoBehaviour
         // アニメーション中は操作を受け付けない、または操作したらアニメーションを止めるなどの制御が可能
         // ここでは「操作したらアニメーション停止」は実装せず、並列で動かないようにだけ注意します
 
-        // マウス・タッチ共通のドラッグ移動
-        if (Pointer.current != null)
-        {
-            HandlePan();
-        }
-
-        // ズーム処理（マウスホイール & ピンチ操作）
+        HandlePan();
         HandleZoom();
         HandleTouchZoom();
     }
@@ -75,7 +69,7 @@ public class SkyCameraController : MonoBehaviour
 
             Vector2 screenPos = Pointer.current.position.ReadValue();
             clickStartScreenPos = screenPos;
-            dragStartPos = cam.ScreenToWorldPoint(new Vector3(screenPos.x, screenPos.y, 0));
+            lastScreenPos = screenPos;
             isDragging = false;
         }
 
@@ -84,17 +78,20 @@ public class SkyCameraController : MonoBehaviour
         {
             Vector2 screenPos = Pointer.current.position.ReadValue();
 
-            if (Vector2.Distance(screenPos, clickStartScreenPos) > 10f)
+            if (!isDragging && Vector2.Distance(screenPos, clickStartScreenPos) > 15f)
             {
                 isDragging = true;
             }
 
             if (isDragging)
             {
-                Vector3 currentPos = cam.ScreenToWorldPoint(new Vector3(screenPos.x, screenPos.y, 0));
-                Vector3 difference = dragStartPos - currentPos;
+                Vector3 worldPointLast = cam.ScreenToWorldPoint(new Vector3(lastScreenPos.x, lastScreenPos.y, cam.nearClipPlane));
+                Vector3 worldPointCurrent = cam.ScreenToWorldPoint(new Vector3(screenPos.x, screenPos.y, cam.nearClipPlane));
+                Vector3 difference = worldPointLast - worldPointCurrent;
 
                 transform.position += difference;
+                lastScreenPos = screenPos; // 現在位置を次のフレームの「直前位置」にする
+
                 ClampCameraPosition();
             }
         }
@@ -183,15 +180,15 @@ public class SkyCameraController : MonoBehaviour
 
     private void HandleZoom()
     {
+        // スマホでタッチしている間はマウスホイール入力を無視（誤動作防止）
+        if (Touchscreen.current != null && Touchscreen.current.touches.Count > 0) return;
+
         if (Mouse.current != null)
         {
             float scroll = Mouse.current.scroll.ReadValue().y;
             if (scroll != 0.0f)
             {
-                // アニメーション停止
                 if (currentMoveCoroutine != null) StopCoroutine(currentMoveCoroutine);
-
-                // マウスホイールの値は大きいので調整
                 cam.orthographicSize -= scroll * zoomSpeed;
                 ClampCameraPosition();
             }

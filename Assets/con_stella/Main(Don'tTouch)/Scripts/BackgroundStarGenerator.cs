@@ -38,7 +38,7 @@ public class BackgroundStarGenerator : MonoBehaviour
     {
         if (starPrefab == null)
         {
-            Debug.LogError("★エラー: StarPrefab が設定されていません！Inspectorを確認してください。");
+            Debug.LogError("StarPrefab が設定されていません！Inspectorを確認してください。");
             return;
         }
 
@@ -62,18 +62,17 @@ public class BackgroundStarGenerator : MonoBehaviour
             float y = Random.Range(-area.y, area.y);
             Vector3 spawnPos = new Vector3(x, y, 0);
 
-            // ★修正1: 生成と同時に親を指定する (SetParentのトラブル回避)
+            // 生成と同時に親を指定する (SetParentのトラブル回避)
             GameObject star = Instantiate(starPrefab, starRoot);
 
-            // ★修正2: ローカル座標としてセットする
+            // ローカル座標としてセットする
             star.transform.localPosition = spawnPos;
 
-            // ★修正3: サイズのランダム化（これが抜けていました）
+            // サイズのランダム化（これが抜けていました）
             float randomScale = Random.Range(minSingleStarSize, maxSingleStarSize);
             star.transform.localScale = Vector3.one * randomScale;
 
-            // ★修正4: 「starPrefab」ではなく、生成した「star」の色を変える
-            SpriteRenderer sr = star.GetComponent<SpriteRenderer>(); // ←ここを直しました
+            SpriteRenderer sr = star.GetComponent<SpriteRenderer>();
             if (sr != null)
             {
                 float randomIntensity = Random.Range(minBgStarBrightness, maxBgStarBrightness);

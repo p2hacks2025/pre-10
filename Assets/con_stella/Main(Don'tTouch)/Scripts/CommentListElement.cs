@@ -20,7 +20,6 @@ public class CommentListElement : MonoBehaviour
             iconImage.color = color;
         }
 
-        // 念の為、高さ確保をコードからも強制する
         if (layoutElement != null)
         {
             layoutElement.minHeight = 100f; // 最小高さを確保
