@@ -13,33 +13,28 @@ public class ManualUIManager : UIBaseManager
         Description
     }
 
-    [Header("Editor Reference")]
+    [Header("描画エディター")]
     [SerializeField] private ManualConstellationEditor editor;
 
-    [Header("Buttons")]
+    [Header("ボタン")]
     [SerializeField] private Button undoButton;
     [SerializeField] private Button redoButton;
 
-    [Header("Panels")]
+    [Header("パネル")]
     [SerializeField] private RectTransform postPanel;
-    [SerializeField] private RectTransform deletePopupPanel; // GameObjectからRectTransformに変更
+    [SerializeField] private RectTransform deletePopupPanel;
 
-    [Header("Panel Settings")]
+    [Header("パネルセッティング")]
     [SerializeField] private float panelHiddenOffset = -1200f;
     [SerializeField] private float panelShowOffset = 0f;
 
-    [Header("Post Panel UI")]
+    [Header("投稿パネルUI")]
     [SerializeField] private TMP_InputField sharedInputField;
     [SerializeField] private TextMeshProUGUI inputTitleText;
     [SerializeField] private TextMeshProUGUI placeholderText;
 
-    [Header("Delete Button Settings")]
+    [Header("削除ボタン設定")]
     [SerializeField] private float longPressDuration = 0.8f;
-
-    [Header("投稿演出")]
-    [SerializeField] private CanvasGroup postMessageCanvasGroup; // 「投稿しました！」のCanvasGroup
-    [SerializeField] private float fadeDuration = 1.5f;          // フェードにかける時間
-
     private bool isDeletingPress = false;
     private float deletePressTimer = 0f;
     private bool longPressTriggered = false;
@@ -47,7 +42,7 @@ public class ManualUIManager : UIBaseManager
     private InputState currentState = InputState.Name;
     private string tempConstellationName = "";
 
-    // ★追加: 外部から「今パネルが開いているか」を確認するためのプロパティ
+    // 外部から「今パネルが開いているか」を確認するためのプロパティ
     public bool HasActivePanel => currentPanel != null;
 
     protected override void Start()
@@ -92,43 +87,27 @@ public class ManualUIManager : UIBaseManager
         }
     }
 
-    // ================================================================================
-    // パネル操作
-    // ================================================================================
-
+    //パネル操作
     private void SwitchPanel(RectTransform targetPanel, float targetOffset, System.Action onComplete = null)
     {
         if (currentPanel != null && currentPanel != targetPanel)
         {
             // 既に開いているパネルがあれば隠す
-            // ここでは即座に隠していますが、アニメーションさせてもOK
             currentPanel.anchoredPosition = new Vector2(0, panelHiddenOffset);
-            currentPanel.gameObject.SetActive(false);
         }
 
         currentPanel = targetPanel;
 
         if (currentPanel != null)
         {
-            currentPanel.gameObject.SetActive(true);
-            if (currentAnimation != null) StopCoroutine(currentAnimation);
-            currentAnimation = StartCoroutine(SlidePanelWithCallback(targetOffset, onComplete));
+            DoSlide(currentPanel, targetOffset, onComplete);
         }
     }
-
-    private IEnumerator SlidePanelWithCallback(float targetY, System.Action onComplete)
-    {
-        yield return StartCoroutine(SlidePanel(targetY));
-        onComplete?.Invoke();
-    }
-
-    // ================================================================================
-    // UI Event Handlers
-    // ================================================================================
 
     public void OnUndoButtonClicked() { if (editor != null) editor.Undo(); }
     public void OnRedoButtonClicked() { if (editor != null) editor.Redo(); }
 
+    //削除ボタンを押したとき
     public void OnDeleteButtonDown()
     {
         if (currentPanel != null) return;
@@ -137,6 +116,7 @@ public class ManualUIManager : UIBaseManager
         longPressTriggered = false;
     }
 
+    //削除ボタンを離したとき
     public void OnDeleteButtonUp()
     {
         if (isDeletingPress && !longPressTriggered)
@@ -147,6 +127,7 @@ public class ManualUIManager : UIBaseManager
         deletePressTimer = 0f;
     }
 
+    //全削除警告ポップ
     private void ShowDeletePopup()
     {
         if (deletePopupPanel != null)
@@ -156,24 +137,26 @@ public class ManualUIManager : UIBaseManager
         }
     }
 
+    //全削除OKボタン
     public void OnDeletePopupOkClicked()
     {
         if (editor != null) editor.DeleteAll();
         ClosePopup(); // パネルを閉じる
     }
 
+    //手描き完了ボタン
     public void OnEditorOkButtonClicked()
     {
         if (currentPanel != null) return;
 
-        // 1. 星がない場合
+        // 1星がない場合
         if (!editor.HasStars)
         {
             editor.ShowWarning("星が一つもありません！");
             return;
         }
 
-        // 2. 線がない場合 (★追加)
+        // 線がない場合
         if (!editor.HasConnections)
         {
             editor.ShowWarning("線が引かれていません！");
@@ -188,10 +171,7 @@ public class ManualUIManager : UIBaseManager
         }
     }
 
-    // ================================================================================
-    // 投稿フロー
-    // ================================================================================
-
+    //投稿フロー
     public void OnPostPanelOkClicked()
     {
         if (sharedInputField == null) return;
@@ -215,6 +195,7 @@ public class ManualUIManager : UIBaseManager
         }
     }
 
+    //InputField内のテキスト更新（ガイドテキスト）
     private void SetupInputState(InputState state)
     {
         currentState = state;
@@ -234,65 +215,21 @@ public class ManualUIManager : UIBaseManager
         }
     }
 
+    //投稿ボタン
     private void FinalizePost(string description)
     {
         ConstellationData data = editor.GetConstellationData();
         data.constellationName = tempConstellationName;
         data.description = description;
 
-        //SaveToLocal(data);
-        SaveToFireBase(data);
-        StartCoroutine(PostSequence(data));
+        //保存処理
+        DataManager.instance.SaveConstellation(data); // クラウド・ローカル両方
+        DataManager.instance.SaveMyConstellationGuid(data.guid);
+        DataManager.instance.SaveNextFocusGuid(data.guid);
+
+        OnCloseButtonClicked();
+        PostSequenceManager.instance.GoToSky();
     }
-/// <summary>
-///  ローカル保存
-/// </summary>
-/// <param name="newData"></param>
-    private void SaveToLocal(ConstellationData newData)
-    {
-        ConstellationListWrapper wrapper = new ConstellationListWrapper();
-        if (PlayerPrefs.HasKey("LocalSaveList"))
-        {
-            string json = PlayerPrefs.GetString("LocalSaveList");
-            wrapper = JsonUtility.FromJson<ConstellationListWrapper>(json);
-        }
-        if (wrapper.list == null) wrapper.list = new List<ConstellationData>();
-
-        wrapper.list.Add(newData);
-        string newJson = JsonUtility.ToJson(wrapper);
-        PlayerPrefs.SetString("LocalSaveList", newJson);
-        PlayerPrefs.Save();
-    }
-
-    private void SaveToFireBase(ConstellationData newData)
-    {
-        if (FirebaseManager.instance != null)
-        {
-            // 保存が終わったらログを出す
-            FirebaseManager.instance.SaveConstellation(newData, (success) => {
-                if (success) Debug.Log("【Manual】クラウド保存完了！");
-            });
-        }
-        else
-        {
-            Debug.LogError("FirebaseManagerがいません！");
-        }
-    }
-
-    private IEnumerator PostSequence(ConstellationData data)
-    {
-        OnCloseButtonClicked();  //パネルを
-
-        yield return PostSequenceManager.instance.PlayPostSequence(
-        data,
-        postMessageCanvasGroup,
-        fadeDuration
-    );
-    }
-
-    // ================================================================================
-    // 共通処理
-    // ================================================================================
 
     public override void OnCloseButtonClicked()
     {
@@ -315,32 +252,6 @@ public class ManualUIManager : UIBaseManager
 
     private void ClosePopup()
     {
-        // ★修正: スライドアウトさせてから非表示にする
-        SwitchPanel(null, panelHiddenOffset, () => {
-            // アニメーション完了後の処理が必要ならここに書く
-        });
-    }
-
-    // ★追加: GUIDをカンマ区切りで保存するヘルパー関数
-    // (ManualUIManager と PhotoUIManager の両方の末尾に追加してください)
-    private void SaveMyConstellationGuid(string guid)
-    {
-        string key = "MyConstellationGuids";
-        string currentSaved = PlayerPrefs.GetString(key, "");
-
-        // まだリストになければ追加
-        if (!currentSaved.Contains(guid))
-        {
-            if (string.IsNullOrEmpty(currentSaved))
-            {
-                currentSaved = guid;
-            }
-            else
-            {
-                currentSaved += "," + guid;
-            }
-            PlayerPrefs.SetString(key, currentSaved);
-            PlayerPrefs.Save();
-        }
+        SwitchPanel(null, panelHiddenOffset);
     }
 }

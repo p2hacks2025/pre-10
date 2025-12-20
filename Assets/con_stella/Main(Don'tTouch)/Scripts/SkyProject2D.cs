@@ -4,7 +4,7 @@ using Junya;
 
 public class SkyProject2D : MonoBehaviour
 {
-    public static SkyProject2D instance; // シングルトン化
+    public static SkyProject2D instance;
 
     [Header("プレハブ")]
     [SerializeField] private GameObject starPrefab;
@@ -25,8 +25,10 @@ public class SkyProject2D : MonoBehaviour
     [Header("UI連携")]
     [SerializeField] private SkyCameraController cameraController;
 
+    [Header("生成設定")]
     [SerializeField] private float collisionCheckRadius = 10f; // この半径内に他の星座があったら配置し直す
     [SerializeField] private int maxRetryCount = 10; // 配置場所が見つからない時の最大再試行回数
+    [SerializeField] private ConstellationRenderer renderer; // 星座の生成スクリプト参照
 
     [Header("いいね演出 (Bloom用HDR設定)")]
     [SerializeField] private float baseIntensity = 1.0f;     // 通常時の明るさ (1.0 = そのまま)
@@ -44,10 +46,9 @@ public class SkyProject2D : MonoBehaviour
 
     void Start()
     {
-        //LoadLocalData();
         GenerateSingleStar();
-        //FireBaseから読み込み
-        StartCoroutine(LoadFromCloudSequence());
+        StartCoroutine(LoadFromCloudSequence());  //FireBaseから読み込み
+
     }
 
     private System.Collections.IEnumerator FocusOnNewConstellation()
@@ -64,7 +65,7 @@ public class SkyProject2D : MonoBehaviour
             // 生成などが完全に終わるまで少し待つ（念のため）
             yield return null;
 
-            // 2. GUID名でオブジェクトを探す
+            // GUID名でオブジェクトを探す
             // (前回の修正でオブジェクト名をGUIDにしている前提です)
             GameObject targetObj = GameObject.Find(targetGuid);
 
@@ -79,7 +80,7 @@ public class SkyProject2D : MonoBehaviour
                 }
             }
 
-            // 3. カメラを移動させる
+            // カメラを移動させる
             if (targetObj != null && cameraController != null)
             {
                 Debug.Log($"【カメラ移動】ターゲット発見: {targetObj.name} 位置: {targetObj.transform.position}");
@@ -155,43 +156,10 @@ public class SkyProject2D : MonoBehaviour
         StartCoroutine(FocusOnNewConstellation());
     }
 
-    public void LoadLocalData()
+    public void DecideConstellationPos()
     {
-        // 1. キーがあるか確認
-        if (!PlayerPrefs.HasKey("LocalSaveList"))
-        {
-            Debug.LogError("【捜査エラー】セーブデータ 'LocalSaveList' が見つかりません！保存ボタンを押しましたか？");
-
-            // もし古いキー(TestSaveData)が残っているなら、教えてあげる
-            if (PlayerPrefs.HasKey("TestSaveData"))
-            {
-                Debug.LogWarning("※ 'TestSaveData' は見つかりました。保存側のコードが古い（リスト保存になっていない）可能性があります。");
-            }
-            return;
-        }
-
-        // 2. JSONの中身を確認
-        string json = PlayerPrefs.GetString("LocalSaveList");
-        Debug.Log("【捜査2】JSONデータを発見: " + json);
-
-        // 3. リストに復元できるか確認
-        currentWrapper = JsonUtility.FromJson<ConstellationListWrapper>(json);
-
-        if (currentWrapper == null)
-        {
-            Debug.LogError("【捜査エラー】JSONの解析に失敗しました。データが壊れています。");
-            return;
-        }
-
-        if (currentWrapper.list == null || currentWrapper.list.Count == 0)
-        {
-            Debug.LogError("【捜査エラー】リストの中身が空っぽ(0件)です！保存処理がうまくいっていません。");
-            return;
-        }
-
-        Debug.Log($"【捜査3】{currentWrapper.list.Count} 件のデータを確認。生成を開始します...");
-
-        // 4. 生成ループ
+        DataManager.instance.LoadAllLocalData();
+        // 生成ループ
         foreach (var data in currentWrapper.list)
         {
             // 位置を決める
@@ -201,20 +169,6 @@ public class SkyProject2D : MonoBehaviour
 
             GenerateConstellationObject(data, spawnPos);
         }
-    }
-
-    public void SaveLocalData()
-    {
-        if (currentWrapper == null) return;
-
-        // 現在のデータをJSONに変換
-        string json = JsonUtility.ToJson(currentWrapper);
-
-        // PlayerPrefsに保存
-        PlayerPrefs.SetString("LocalSaveList", json);
-        PlayerPrefs.Save();
-
-        Debug.Log("【保存完了】データを保存しました: " + json);
     }
 
     // 重ならない位置を探すロジック
@@ -240,100 +194,18 @@ public class SkyProject2D : MonoBehaviour
         return new Vector3(Random.Range(-spawnArea.x, spawnArea.x), Random.Range(-spawnArea.y, spawnArea.y), 0);
     }
 
-    // 生成直前に、データが新しい仕様（rootやリストが初期化されているか）に適合しているか確認する
-    private void EnsureDataIntegrity(ConstellationData data)
-    {
-        if (data == null) return;
-        if (data.stars == null) data.stars = new List<StarData>();
-        if (data.connections == null) data.connections = new List<ConnectionData>();
-        if (data.root == null) data.root = new Comment("Root"); // 古いデータにrootを付与
-    }
-
     public static void StaticGenerate(ConstellationData data, Vector3 position) => GameObject.Find("SkyManager").
         GetComponent<SkyProject2D>().GenerateConstellationObject(data, position);
 
     private void GenerateConstellationObject(ConstellationData data, Vector3 position)
     {
-        EnsureDataIntegrity(data);  //データの補完
-
-        if (data == null) return;
-        // リストがnullで復元されていたら空のリストを入れて初期化する（クラッシュ防止）
-        if (data.stars == null) data.stars = new List<StarData>();
-        
-        if (data.connections == null) data.connections = new List<ConnectionData>();
-        // 5. プレハブチェック
-        if (starPrefab == null || linePrefab == null)
-        {
-            Debug.LogError("【捜査エラー】Inspectorで StarPrefab か LinePrefab がセットされていません！");
-            return;
-        }
-        if (skyRoot == null)
-        {
-            Debug.LogWarning("※ SkyRoot がセットされていません（生成はされますが整理されません）");
-        }
-
-        //名前が空なら、代替名を命名
-        string objectName = string.IsNullOrEmpty(data.guid) ?
-                        (string.IsNullOrEmpty(data.constellationName) ? "Unknown" : data.constellationName)
-                        : data.guid;
-
-        
-        GameObject rootObj = new GameObject(objectName);
-        if (skyRoot != null) rootObj.transform.SetParent(skyRoot);
-        rootObj.transform.localPosition = position;
-
-        Debug.Log($"【捜査4】オブジェクト '{data.constellationName}' を生成しました。位置: {position}");
-
-        // 以下、中身の生成
         float currentScale = Random.Range(minDisplayScale, maxDisplayScale);
-
-        BoxCollider2D col = rootObj.AddComponent<BoxCollider2D>();
-        col.size = new Vector2(300f * currentScale, 300f * currentScale);
-        col.isTrigger = true;
-
-        ConstellationClickTrigger trigger = rootObj.AddComponent<ConstellationClickTrigger>();
-        trigger.Setup(data, cameraController);
-
-        //中身の生成
-        Dictionary<int, GameObject> idToObjMap = new Dictionary<int, GameObject>();
-
-        // 星
-        foreach (var sData in data.stars)
-        {
-            if (sData == null) continue;
-
-            GameObject star = Instantiate(starPrefab, rootObj.transform);
-            Vector3 starPos = new Vector3(sData.x * currentScale, sData.y * currentScale, 0);
-            star.transform.localPosition = starPos;
-            star.transform.localScale = Vector3.one * sData.scale * currentScale;
-
-            var sprite = star.GetComponent<SpriteRenderer>();
-            if (sprite != null) sprite.sortingOrder = 100;
-
-            idToObjMap[sData.id] = star;
-        }
-
-        // 線
-        foreach (var cData in data.connections)
-        {
-            if (cData == null) continue;
-
-            if (idToObjMap.ContainsKey(cData.fromStarId) && idToObjMap.ContainsKey(cData.toStarId))
-            {
-                CreateLine(idToObjMap[cData.fromStarId].transform.localPosition,
-                           idToObjMap[cData.toStarId].transform.localPosition,
-                           rootObj.transform,
-                           currentScale);
-            }
-        }
-        UpdateConstellationBloom(data);  //星の輝き更新
+        // レンダラースクリプトに依頼
+        renderer.Render(data, skyRoot, position, currentScale, cameraController);
     }
-
 
     public void GetConstellationObject(ref ConstellationData data, Vector3 position)
     {
-        EnsureDataIntegrity(data);  //データが古いと、補完される
-
         GameObject starPrefab = GameObject.Find("StarPrefab").gameObject;
 
         GameObject rootObj = new GameObject(data.constellationName);
@@ -429,11 +301,10 @@ public class SkyProject2D : MonoBehaviour
     {
         if (FirebaseManager.instance != null)
         {
-            // 1. Firebase側のリスナーを起動（すでに動いていれば無視されるので安全）
+            // Firebase側のリスナーを起動（すでに動いていれば無視される）
             FirebaseManager.instance.InitShootingStarListener();
 
-            // 2. 「データが届いたときの処理」を登録
-            // 以前の ListenForShootingStars(...) ではなく、C#イベントを使います
+            // データが届いたときの処理を登録
             FirebaseManager.instance.OnShootingStarReceived += HandleShootingStar;
         }
     }
@@ -444,23 +315,23 @@ public class SkyProject2D : MonoBehaviour
 
         for (int i = 0; i < starAmount; i++)
         {
-            // 1. 位置をランダムに決定（画面端にも生成できるように、spawnAreaを調整）
+            // 位置をランダムに決定（画面端にも生成できるように、spawnAreaを調整）
             float randomX = Random.Range(-spawnArea.x - 10, spawnArea.x + 10);
             float randomY = Random.Range(-spawnArea.y - 10, spawnArea.y + 10);
             Vector3 spawnPos = new Vector3(randomX, randomY, 0);
 
-            // 2. 生成 (skyRootがあればその子にする)
+            // 生成 (skyRootがあればその子にする)
             GameObject starObj = Instantiate(starPrefab, spawnPos, Quaternion.identity);
             if (skyRoot != null) starObj.transform.SetParent(skyRoot);
 
-            // 名前を変えておくとわかりやすい（任意）
+            // 名前を変えておく
             starObj.name = $"BgStar_{i}";
 
-            // 3. ランダムな大きさを適用
+            // ランダムな大きさを適用
             float randomScale = Random.Range(minSingleStarSize, maxSingleStarSize);
             starObj.transform.localScale = Vector3.one * randomScale;
 
-            // 4. ランダムな輝き（Bloom）を適用
+            // ランダムな輝き（Bloom）を適用
             SpriteRenderer sr = starObj.GetComponent<SpriteRenderer>();
             if (sr != null)
             {
@@ -470,9 +341,6 @@ public class SkyProject2D : MonoBehaviour
                 // HDRカラーを作成 (RGB > 1.0 で光る)
                 Color hdrColor = new Color(randomIntensity, randomIntensity, randomIntensity, 1f);
                 sr.color = hdrColor;
-
-                // 背景用の星なので、星座より奥に描画されるようにSortingOrderを下げる
-                //sr.sortingOrder = -10;
             }
         }
 
@@ -493,12 +361,12 @@ public class SkyProject2D : MonoBehaviour
             return;
         }
 
-        // 計算: いいね数が多いほど値が大きくなる (例: 1.0 -> 1.2 -> 1.4 ...)
+        // いいね数が多いほど値が大きくなる
         float intensity = baseIntensity + (data.likeCount * intensityPerLike);
         // 上限キャップ
         intensity = Mathf.Min(intensity, maxIntensity);
 
-        // HDRカラーを作成 (RGBすべてを1.0以上にすると白く光る)
+        // HDRカラーを作成
         Color hdrColor = new Color(intensity, intensity, intensity, 1f);
 
         // 星（SpriteRenderer）をすべて取得して色をセット
@@ -510,20 +378,8 @@ public class SkyProject2D : MonoBehaviour
 
         Debug.Log($"[{targetName}] Bloom強度更新: {intensity}");
     }
-    void CheckSavedData()
-    {
-        if (PlayerPrefs.HasKey("LocalSaveList"))
-        {
-            string json = PlayerPrefs.GetString("LocalSaveList");
-            Debug.Log("【保存データの中身】: " + json);
-        }
-        else
-        {
-            Debug.Log("保存されたデータはありません。");
-        }
-    }
 
-    // ★追加: 実際に星を受け取ったときの処理
+    //　実際に星を受け取ったときの処理
     private void HandleShootingStar(ShootingStarData data)
     {
         // 自分以外の星が飛んできたら表示
@@ -540,7 +396,6 @@ public class SkyProject2D : MonoBehaviour
     {
         if (FirebaseManager.instance != null)
         {
-            // これを忘れるとエラーになるので必ず解除！
             FirebaseManager.instance.OnShootingStarReceived -= HandleShootingStar;
         }
     }

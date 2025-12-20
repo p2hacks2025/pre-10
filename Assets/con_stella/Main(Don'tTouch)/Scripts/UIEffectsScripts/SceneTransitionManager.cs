@@ -45,7 +45,6 @@ public class SceneTransitionManager : MonoBehaviour
         fadeImage.DOFade(0f, fadeDuration).OnComplete(() => fadeImage.gameObject.SetActive(false));
     }
 
-    // ★ズーム付き遷移もDOTweenならシンプル
     public void LoadSceneWithZoom(string sceneName, Vector3 targetPos)
     {
         Camera cam = Camera.main;

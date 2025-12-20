@@ -1,49 +1,41 @@
 ﻿using UnityEngine;
-using UnityEngine.UI; // ★UIを操作するために必要
+using UnityEngine.UI;
+using DG.Tweening;
 
 public class UIGlowingBlink : MonoBehaviour
 {
     [Header("点滅の設定")]
     [SerializeField] private float blinkSpeed = 2.0f;
     [SerializeField] private float minIntensity = 0.5f;
-    [SerializeField] private float maxIntensity = 3.0f; // Bloomさせるなら1.0以上にする
+    [SerializeField] private float maxIntensity = 3.0f;
 
     [Header("色設定")]
     [ColorUsage(true, true)] // HDRカラー対応
     [SerializeField] private Color baseColor = Color.white;
 
-    private Image targetImage; // ★SpriteRendererからImageに変更
+    private Image targetImage;
 
     void Start()
     {
-        // アタッチされているImageコンポーネントを取得
-        targetImage = GetComponent<Image>();
+        targetImage = GetComponent<Image>();  //Imageコンポーネント取得
 
         if (targetImage == null)
         {
             // なければ追加
             targetImage = gameObject.AddComponent<Image>();
         }
+
+        //点滅ループ
+        DOTween.To(() => minIntensity, x => UpdateColor(x), maxIntensity, blinkSpeed)
+            .SetEase(Ease.InOutSine)
+            .SetLoops(-1, LoopType.Yoyo);
     }
 
-    void Update()
+    void UpdateColor(float intensity)
     {
-        if (targetImage == null) return;
-
-        // サイン波で強弱を作る (0.0 〜 1.0)
-        float sinWave = Mathf.Sin(Time.time * blinkSpeed);
-        float factor = (sinWave + 1.0f) / 2.0f;
-
-        // 強度を計算
-        float currentIntensity = Mathf.Lerp(minIntensity, maxIntensity, factor);
-
-        // HDRカラーを作成
-        Color finalColor = baseColor * currentIntensity;
-
-        // 元の画像の透明度(Alpha)は維持する
-        finalColor.a = targetImage.color.a;
-
-        // 適用
-        targetImage.color = finalColor;
+        if (targetImage != null)
+        {
+            targetImage.color = baseColor * intensity;
+        }
     }
 }

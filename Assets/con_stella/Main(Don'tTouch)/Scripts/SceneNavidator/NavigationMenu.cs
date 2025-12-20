@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 using System.Collections;
+using DG.Tweening;
 
 public class NavigationMenu : MonoBehaviour
 {
@@ -60,8 +61,8 @@ public class NavigationMenu : MonoBehaviour
         menuPanel.SetActive(true);
         if (closeBackground) closeBackground.gameObject.SetActive(true);
 
-        if (currentAnim != null) StopCoroutine(currentAnim);
-        currentAnim = StartCoroutine(ScaleAnimation(Vector3.zero, Vector3.one));
+        menuPanel.transform.localScale = Vector3.zero;
+        menuPanel.transform.DOScale(Vector3.one, animDuration).SetEase(Ease.OutBack);
     }
 
     private void CloseMenu()

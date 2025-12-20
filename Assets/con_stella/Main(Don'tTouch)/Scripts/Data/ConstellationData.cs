@@ -45,6 +45,14 @@ public class ConstellationData : IAttachable
     {
 
     }
+
+    // データが新しい仕様（rootやリストが初期化されているか）に適合しているか確認する
+    public void EnsureIntegrity()
+    {
+        if (stars == null) stars = new List<StarData>();
+        if (connections == null) connections = new List<ConnectionData>();
+        if (root == null) root = new Comment("Root");
+    }
 }
 
 [Serializable]

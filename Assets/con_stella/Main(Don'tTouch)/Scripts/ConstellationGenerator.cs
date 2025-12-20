@@ -198,48 +198,7 @@ public class ConstellationGenerator : MonoBehaviour
                 }
             }
         }
-
-        // 最後にローカル保存を実行
-        SaveToLocal(saveData);
-        //クラウドに保存
-        SaveToFireBase(saveData);
         //作成したデータを返す（UI側でGUIDを使うため）
         return saveData;
-    }
-
-    // データを受け取ってローカルに保存する専用関数
-    private void SaveToLocal(ConstellationData newData)
-    {
-        ConstellationListWrapper wrapper = new ConstellationListWrapper();
-
-        // 既存のデータを読み込む
-        if (PlayerPrefs.HasKey("LocalSaveList"))
-        {
-            string json = PlayerPrefs.GetString("LocalSaveList");
-            wrapper = JsonUtility.FromJson<ConstellationListWrapper>(json);
-        }
-
-        // リストに追加
-
-        //wrapper ??= new();
-        wrapper.list ??= new();
-        wrapper.list.Add(newData);
-
-        // JSONにして保存
-        string newJson = JsonUtility.ToJson(wrapper);
-        PlayerPrefs.SetString("LocalSaveList", newJson);
-        PlayerPrefs.Save();
-
-        Debug.Log($"星座 '{newData.constellationName}' を保存しました！");
-    }
-
-    private void SaveToFireBase(ConstellationData newData)
-    {
-        if (FirebaseManager.instance != null)
-        {
-            FirebaseManager.instance.SaveConstellation(newData, (success) => {
-                if (success) Debug.Log("【Photo】クラウド保存完了！");
-            });
-        }
     }
 }

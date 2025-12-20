@@ -6,22 +6,16 @@ using Junya;
 
 public class SkyUIManager : UIBaseManager
 {
-    // =================================================
-    // 1. 設定項目
-    // =================================================
     [Header("各パネルの隠れる位置 (高さ設定)")]
     [SerializeField] private float detailPanelOffset = 1200f;
     [SerializeField] private float postStarPanelOffset = 600f;
-    [SerializeField] private float replyPanelOffset = 1800f;   // 十分大きな値を設定
+    [SerializeField] private float replyPanelOffset = 1800f;
 
-    // =================================================
-    // 2. UIパーツの参照
-    // =================================================
-    [Header("【1】DetailPanel (星座詳細)")]
+    [Header("DetailPanel (星座詳細)")]
     [SerializeField] private RectTransform detailPanel;
     [SerializeField] private TextMeshProUGUI nameText;
-    [SerializeField] private Transform detailDescriptionRoot; 
-    [SerializeField] private Transform listContentRoot;       // ここが ScrollView/Viewport/Content であること
+    [SerializeField] private Transform detailDescriptionRoot;
+    [SerializeField] private Transform listContentRoot;
     [SerializeField] private CommentListElement commentItemPrefab;
     [Header("いいね機能")]
     [SerializeField] private Button likeButton;           // ボタン本体
@@ -33,18 +27,18 @@ public class SkyUIManager : UIBaseManager
     [SerializeField] private Color normalColor = Color.white; // 通常時の色
     [SerializeField] private Color likedColor = Color.red;    // いいね時の色
 
-    [Header("【2】PostStarPanel (流れ星投稿)")]
+    [Header("PostStarPanel (流れ星投稿)")]
     [SerializeField] private RectTransform postStarPanel;
     [SerializeField] private TMP_InputField postContentInput;
 
-    [Header("【3】ReplyPanel (返信)")]
+    [Header("ReplyPanel (返信)")]
     [SerializeField] private RectTransform replyPanel;
     [SerializeField] private TMP_InputField replyContentInput;
     [SerializeField] private Transform replyDescriptionRoot;
 
     [Header("その他")]
     [SerializeField] private SkyCameraController cameraController;
-    //[SerializeField] private CommentManager commentManager;
+
     // 内部変数
     private ConstellationData currentData;
     private float currentPanelOffset;
@@ -57,35 +51,31 @@ public class SkyUIManager : UIBaseManager
         if (replyPanel != null) replyPanel.anchoredPosition = new Vector2(0, -replyPanelOffset);
     }
 
-    // =================================================
-    // パネル切り替えロジック
-    // =================================================
     private void SwitchPanel(RectTransform targetPanel, float targetOffset)
     {
-        // 開いているパネルがターゲットと違う場合、古いパネルを隠す
         if (currentPanel != null && currentPanel != targetPanel)
         {
-            float oldOffset = 0f;
-            if (currentPanel == detailPanel) oldOffset = detailPanelOffset;
-            else if (currentPanel == postStarPanel) oldOffset = postStarPanelOffset;
-            else if (currentPanel == replyPanel) oldOffset = replyPanelOffset;
-
-            // 即座に隠す
+            // 古いパネルを即座に隠す
+            float oldOffset = GetOffsetForPanel(currentPanel);
             currentPanel.anchoredPosition = new Vector2(0, -oldOffset);
         }
 
-        // 新しいパネルをセット
         currentPanel = targetPanel;
         currentPanelOffset = targetOffset;
 
-        // アニメーション開始
-        if (currentAnimation != null) StopCoroutine(currentAnimation);
-        currentAnimation = StartCoroutine(SlidePanel(0)); // 画面内(Y=0)へ
+        DoSlide(currentPanel, 0);
     }
 
-    // =================================================
-    // 詳細画面 (DetailPanel)
-    // =================================================
+    // ヘルパー: パネルごとのオフセットを返す
+    private float GetOffsetForPanel(RectTransform panel)
+    {
+        if (panel == detailPanel) return detailPanelOffset;
+        if (panel == postStarPanel) return postStarPanelOffset;
+        if (panel == replyPanel) return replyPanelOffset;
+        return panelHeight;
+    }
+
+    //詳細（星座説明、コメント）の表示
     public void ShowDetail(ConstellationData data)
     {
         // データ自体がnullの場合は処理を中断する
@@ -97,7 +87,6 @@ public class SkyUIManager : UIBaseManager
 
         currentData = data;
 
-        // ★修正：各プロパティのnullチェックを強化
         string constellationName = string.IsNullOrEmpty(data.constellationName) ? "無題の星座" : data.constellationName;
         string description = string.IsNullOrEmpty(data.description) ? "説明はありません。" : data.description;
 
@@ -126,14 +115,14 @@ public class SkyUIManager : UIBaseManager
         }
 
         UpdateLikeUI();
-        
+
         SwitchPanel(detailPanel, detailPanelOffset);
     }
 
     // CommentManagerからプレハブと色を取得して生成する共通関数
     private void CreateCommentObject(Transform root, string text, bool useRandomColor)
     {
-        // 1. シングルトンインスタンスを取得 (Junya.CommentManagerと明示)
+        // シングルトンインスタンスを取得 (Junya.CommentManagerと明示)
         Junya.CommentManager manager = Junya.CommentManager.instance;
 
         // 念のためFindでも探す
@@ -145,15 +134,15 @@ public class SkyUIManager : UIBaseManager
             return;
         }
 
-        // 2. 生成
+        // 生成
         GameObject itemObj = Instantiate(manager.prefab, root);
 
-        // 3. サイズリセット
+        // サイズリセット
         itemObj.transform.localScale = Vector3.one;
         itemObj.transform.localPosition = Vector3.zero;
         itemObj.transform.localRotation = Quaternion.identity;
 
-        // 4. セットアップ
+        // セットアップ
         CommentListElement itemScript = itemObj.GetComponent<CommentListElement>();
         if (itemScript != null)
         {
@@ -204,17 +193,20 @@ public class SkyUIManager : UIBaseManager
 
         // すでにいいね済みなら何もしない
         if (currentData.isLiked) return;
-        
-        // 1. データ更新
+
+        // データ更新
         currentData.likeCount++;
         currentData.isLiked = true;
 
         // 「このIDをいいねした」と端末に保存する
-        SaveLikedGuid(currentData.guid);
+        DataManager.instance.SaveConstellationFirebase(currentData);
+        DataManager.instance.SaveLikedGuid(currentData.guid);
+
         Debug.Log($"【UI】いいねしました: {currentData.constellationName} -> {currentData.likeCount}");
-        
+
         //  UI更新 (即座に反映)
         UpdateLikeUI();
+
         // クラウド上のいいね数を更新
         if (FirebaseManager.instance != null)
         {
@@ -225,29 +217,6 @@ public class SkyUIManager : UIBaseManager
         if (SkyProject2D.instance != null)
         {
             SkyProject2D.instance.UpdateConstellationBloom(currentData);
-            //SkyProject2D.instance.SaveLocalData();
-        }
-    }
-
-    // いいねしたGUIDを保存するヘルパー関数
-    private void SaveLikedGuid(string guid)
-    {
-        string key = "LikedGuids";
-        string currentSaved = PlayerPrefs.GetString(key, "");
-
-        // まだ保存されていなければ追加 (カンマ区切りで保存)
-        if (!currentSaved.Contains(guid))
-        {
-            if (string.IsNullOrEmpty(currentSaved))
-            {
-                currentSaved = guid;
-            }
-            else
-            {
-                currentSaved += "," + guid;
-            }
-            PlayerPrefs.SetString(key, currentSaved);
-            PlayerPrefs.Save();
         }
     }
 
@@ -260,7 +229,7 @@ public class SkyUIManager : UIBaseManager
         string myGuids = PlayerPrefs.GetString("MyConstellationGuids", "");
         bool isMine = myGuids.Contains(currentData.guid);
 
-        // 1. テキスト更新
+        // テキスト更新
         if (likeCountText != null)
         {
             if (isMine)
@@ -272,7 +241,7 @@ public class SkyUIManager : UIBaseManager
             else
             {
                 // 他人のは隠す
-                likeCountText.gameObject.SetActive(false); // 完全に消したい場合はこちら
+                likeCountText.gameObject.SetActive(false);
             }
         }
         else
@@ -280,7 +249,7 @@ public class SkyUIManager : UIBaseManager
             Debug.LogError("【UIエラー】LikeCountTextがInspectorで設定されていません！");
         }
 
-        // 2. アイコンと色の更新
+        // アイコンと色の更新
         if (likeButtonImage != null)
         {
             // いいね済みかどうかで画像と色を切り替える
@@ -317,9 +286,8 @@ public class SkyUIManager : UIBaseManager
         SwitchPanel(replyPanel, replyPanelOffset);
     }
 
-    // =================================================
-    // 返信機能 (ReplyPanel)
-    // =================================================
+
+    // 返信用パネル表示
     public void OnSendReplyClicked()
     {
         if (replyContentInput == null || string.IsNullOrEmpty(replyContentInput.text)) return;
@@ -327,35 +295,25 @@ public class SkyUIManager : UIBaseManager
 
         string text = replyContentInput.text;
 
-        // 1. コメントデータを作成
+        // コメントデータを作成
         Comment newComment = new Comment(text);
 
-        // 2. データの参照に追加（ここでメモリ上のデータは更新される）
+        // データの参照に追加。ここでメモリ上のデータ更新
         currentData.Attach(ref newComment);
 
         Debug.Log("返信データ追加完了: " + text);
-        /*
-        // 更新されたデータをローカルのファイルに保存する！
-        if (SkyProject2D.instance != null)
-        {
-            SkyProject2D.instance.SaveLocalData();
-        }
-        */
+
         // データ全体をクラウドに上書き保存して更新
-        if (FirebaseManager.instance != null)
-        {
-            FirebaseManager.instance.SaveConstellation(currentData);
-        }
-        // 3. 入力欄クリア
+        DataManager.instance.SaveConstellationFirebase(currentData);
+
+        // 入力欄クリア
         replyContentInput.text = "";
 
-        // 4. 詳細画面再表示
+        // 詳細画面再表示
         ShowDetail(currentData);
     }
 
-    // =================================================
-    // 流れ星機能
-    // =================================================
+    //流れ星投稿用パネル表示
     public void ShowPostStarPanel()
     {
         if (postContentInput) postContentInput.text = "";
@@ -369,7 +327,7 @@ public class SkyUIManager : UIBaseManager
         if (string.IsNullOrEmpty(msg)) return;
 
         ShootingStarData data = new ShootingStarData(msg, "自分");
-        // 1. ローカルで飛ばす（自分の画面用）
+        // ローカルで飛ばす（自分の画面用）
         if (ShootingStarManager.instance != null)
         {
             ShootingStarManager.instance.SpawnStar(data);
@@ -384,23 +342,14 @@ public class SkyUIManager : UIBaseManager
         OnCloseButtonClicked();
     }
 
-    // =================================================
-    // 閉じる処理
-    // =================================================
+    //閉じる処理の追加機能
     public override void OnCloseButtonClicked()
     {
         // 返信画面で「閉じる」を押したときは、詳細に戻るのが自然
-        if (currentPanel == replyPanel && currentData != null)
-        {
-            ShowDetail(currentData);
-            return;
-        }
-
+        if (currentPanel == replyPanel && currentData != null) { ShowDetail(currentData); return; }
         if (currentPanel == null) return;
-        if (currentAnimation != null) StopCoroutine(currentAnimation);
 
-        // 現在のパネル設定値を使って隠す
-        currentAnimation = StartCoroutine(SlidePanel(-currentPanelOffset));
+        DoSlide(currentPanel, -currentPanelOffset);
 
         if (cameraController != null) cameraController.ResetView();
     }
