@@ -1,14 +1,13 @@
 #define frame2
 
-using UnityEngine;
+using Cysharp.Threading.Tasks;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
+using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
-
-using System.Linq;
-
-using Cysharp.Threading.Tasks;
+using TMPro;
 
 #if frame
 public class MyPageManager : MonoBehaviour
@@ -80,7 +79,7 @@ public class MyPageManager : MonoBehaviour
         else return 1;
     }
 
-    private async UniTask FocusTo(Frame target)
+    private async UniTask FocusOn(Frame target)
     {
         focused = target;
 
@@ -230,19 +229,27 @@ public class MyPageManager : MonoBehaviour
 
     [Header("RawObjects")]
     public GameObject pointer;
+    public GameObject anchor;
+    public GameObject description;
 
     [Header("Preferences")]
     public Vector2 space;
     public int row;
+    public float forceFactor;
+    public float frictionFactor;
 
-    private Rigidbody2D rigidbody;
+    new private Rigidbody2D rigidbody;
 
     private List<Frame2> frames;
     private List<Button> buttons;
 
-    async void Start()
+    private bool isInFocusView;
+
+    void Start()
     {
         instance = this;
+
+        this.rigidbody = this.transform.GetComponent<Rigidbody2D>();
 
         List<ConstellationData> datas = GetLocalData();
 
@@ -250,7 +257,7 @@ public class MyPageManager : MonoBehaviour
         this.buttons = new();
         for (int index = 0; index < datas.Count; ++index)
         {
-            this.frames.Add(Frame2.ConstructFrame(this, datas[index]));
+            this.frames.Add(Frame2.ConstructFrame(datas[index]));
             this.buttons.Add(Instantiate(this.buttonPrefab, this.transform.position, Quaternion.identity).transform.GetComponent<Button>());
             this.frames[index].transform.SetParent(this.transform);
             this.buttons[index].transform.SetParent(frames[index].transform);
@@ -261,36 +268,125 @@ public class MyPageManager : MonoBehaviour
             buttons[index].onClick.AddListener(() => FocusOn(frames[index]));
         }
 
-        this.rigidbody = this.transform.GetComponent<Rigidbody2D>();
-    }
 
+        this.isInFocusView = false;
+    }
 
     private float pvalue;
     async void Update()
     {
-        float value = Camera.main.ScreenToWorldPoint(Pointer.current.position.ReadValue()).y;
-        float delta = value - pvalue;
-
-        ////
-        Debug.Log("delta = " + delta);
-
-        if (Input.GetMouseButton(0))
+        if (!this.isInFocusView)
         {
-            this.rigidbody.AddForce(Vector3.up * delta * 1000f);
-            //this.transform.position += Vector3.up * delta;
+            float value = Camera.main.ScreenToWorldPoint(Pointer.current.position.ReadValue()).y;
+            float delta = value - pvalue;
+
+            if (Input.GetMouseButton(0))
+            {
+                this.rigidbody.AddForce(Vector3.up * delta * forceFactor);
+                //this.transform.position += Vector3.up * delta;
+            }
+            this.rigidbody.AddForce(-Vector3.up * this.rigidbody.linearVelocity.y);
+
+            if (Input.GetKeyDown(KeyCode.F))
+            {
+                await FocusOn(frames[0]);
+            }
+
+            pvalue = value;
         }
-        this.rigidbody.AddForce(-Vector3.up * this.rigidbody.linearVelocity.y);
-        ////
-        
-        pvalue = value;
     }
 
-    private void FocusOn(Frame2 frame)
+    public async UniTask FocusOn(Frame2 frame)
     {
+        this.isInFocusView = true;
+
+        await UniTask.Delay(100);
+
+        this.rigidbody.linearVelocity = Vector3.zero;
+
+        MoveOthers(frame).Forget();
+        MoveTarget(frame).Forget();
+        FadeInText(frame).Forget();
 
     }
+    private async UniTask MoveOthers(Frame2 frame)
+    {
+        IEnumerable<Frame2> others = from other in this.frames where other != frame select other;
+        IEnumerable<Vector3> defaultPositions = from other in others select other.gameObject.transform.position;
+
+        float duration = 0;
+
+        while (duration < 1)
+        {
+            for (int index = 0; index < others.Count(); ++index)
+            {
+                others.ToList()[index].gameObject.transform.position = defaultPositions.ToList()[index] + Vector3.right * Curve(duration);
+            }
+
+            duration += Time.deltaTime;
+
+            await UniTask.Yield();
+        }
+    }
+
+    public float factor1;
+    public float factor2;
+    public float factor3;
+
+    private async UniTask MoveTarget(Frame2 frame)
+    {
+        await UniTask.Delay(200);
+
+        float duration = 0;
+
+        Vector3 defaultPosition = frame.transform.position;
+        Vector3 defaultScale = frame.transform.localScale;
+
+        Vector3 defaultConstellationPosition = frame.constellationParent.transform.position;
+        Vector3 defaultConstellationScale = frame.constellationParent.transform.localScale;
 
 
+        Vector3 delta = anchor.transform.position - defaultPosition + 7f * Vector3.down;
+
+        while (duration < 1)
+        {
+
+            Debug.Log(duration);
+
+            frame.transform.position = defaultPosition + delta * Curve(duration);
+            frame.transform.localScale = defaultScale * (1f + 7f * Curve(duration));
+
+            frame.constellationParent.transform.position = frame.Anchor.transform.position + Vector3.up * factor1 * Curve(duration);
+            frame.constellationParent.transform.localScale = defaultConstellationScale / (1f + factor2 * Curve(duration));
+
+            duration += Time.deltaTime * 1.5f;
+
+            await UniTask.Yield();
+        }
+    }
+    private async UniTask FadeInText(Frame2 frame)
+    {
+        int length = 0;
+
+        while (length < frame.data.description.Length)
+        {
+
+            this.description.transform.GetComponent<TMP_Text>().text = frame.data.description[0..length];
+            
+            length++;
+
+            await UniTask.Delay(100);
+        }
+
+        
+    }
+
+    private static float Curve(float x)
+    {
+        if (x < 0f) throw new System.Exception();
+        else if (x < 1f) return (-Mathf.Cos(Mathf.PI * x) + 1f) / 2f;
+        else return 1f;
+    }
 
     public static List<ConstellationData> GetLocalData()
     {

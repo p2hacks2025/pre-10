@@ -200,7 +200,7 @@ public class ConstellationGenerator : MonoBehaviour
         }
 
         // 最後にローカル保存を実行
-        //SaveToLocal(saveData);
+        SaveToLocal(saveData);
         //クラウドに保存
         SaveToFireBase(saveData);
         //作成したデータを返す（UI側でGUIDを使うため）
