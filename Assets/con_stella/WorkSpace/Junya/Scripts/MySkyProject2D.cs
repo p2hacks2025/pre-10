@@ -1,3 +1,4 @@
+using Cysharp.Threading.Tasks.Triggers;
 using System.Collections.Generic;
 using Unity.VisualScripting;
 using UnityEngine;
@@ -137,70 +138,6 @@ public class MySkyProject2D : MonoBehaviour
         return new Vector3(Random.Range(-spawnArea.x, spawnArea.x), Random.Range(-spawnArea.y, spawnArea.y), 0);
     }
 
-    public static void StaticGenerate(ConstellationData data, Vector3 position) => GameObject.Find("MySkyManager").GetComponent<MySkyProject2D>().GenerateConstellationObject(data, position);
-
-    private void GenerateConstellationObject(ConstellationData data, Vector3 position)
-    {
-        // 5. プレハブチェック
-        if (starPrefab == null || linePrefab == null)
-        {
-            Debug.LogError("【捜査エラー】Inspectorで StarPrefab か LinePrefab がセットされていません！");
-            return;
-        }
-        if (skyRoot == null)
-        {
-            Debug.LogWarning("※ SkyRoot がセットされていません（生成はされますが整理されません）");
-        }
-
-        GameObject rootObj = new GameObject(data.constellationName);
-        if (skyRoot != null) rootObj.transform.SetParent(skyRoot);
-        rootObj.transform.localPosition = position;
-
-        Debug.Log($"【捜査4】オブジェクト '{data.constellationName}' を生成しました。位置: {position}");
-
-        // 以下、中身の生成
-        float currentScale = Random.Range(minDisplayScale, maxDisplayScale);
-
-        BoxCollider2D col = rootObj.AddComponent<BoxCollider2D>();
-        col.size = new Vector2(300f * currentScale, 300f * currentScale);
-        col.isTrigger = true;
-
-        ConstellationClickTrigger trigger = rootObj.AddComponent<ConstellationClickTrigger>();
-        trigger.Setup(data, cameraController);
-
-        //中身の生成
-        Dictionary<int, GameObject> idToObjMap = new Dictionary<int, GameObject>();
-
-        // 星
-        foreach (var sData in data.stars)
-        {
-            GameObject star = Instantiate(starPrefab, rootObj.transform);
-            Vector3 starPos = new Vector3(sData.x * currentScale, sData.y * currentScale, 0);
-            star.transform.localPosition = starPos;
-            star.transform.localScale = Vector3.one * sData.scale * currentScale;
-
-            var sprite = star.GetComponent<SpriteRenderer>();
-            if (sprite != null) sprite.sortingOrder = 100;
-
-            idToObjMap[sData.id] = star;
-        }
-
-        // 線
-        foreach (var cData in data.connections)
-        {
-            if (idToObjMap.ContainsKey(cData.fromStarId) && idToObjMap.ContainsKey(cData.toStarId))
-            {
-                CreateLine(idToObjMap[cData.fromStarId].transform.localPosition,
-                           idToObjMap[cData.toStarId].transform.localPosition,
-                           rootObj.transform,
-                           currentScale);
-            }
-        }
-        UpdateConstellationBloom(data);  //星の輝き更新
-    }
-
-    public static void StaticGet(ConstellationData data, Vector3 position) => GameObject.Find("MySkyManager").GetComponent<MySkyProject2D>().GetConstellationObject(ref data, position);
-
     public GameObject GetConstellationObject(ref ConstellationData data, Vector3 position)
     {
         GameObject rootObj = new GameObject(data.constellationName);
@@ -250,7 +187,12 @@ public class MySkyProject2D : MonoBehaviour
                            currentScale);
             }
         }
-        UpdateConstellationBloom(data);  //星の輝き更新
+        //UpdateConstellationBloom(data);  //星の輝き更新
+
+        float intensity = 50f;
+        Color hdrColor = new Color(intensity, intensity, intensity, 1.0f);
+        foreach (var sr in rootObj.GetComponentsInChildren<SpriteRenderer>()) sr.color = hdrColor;
+        //foreach(var sr in rootObj.GetComponentsInChildren<LineRenderer>()) sr.color = new Color(intensity, intensity, intensity, 1f);
 
         return rootObj;
     }
@@ -337,30 +279,7 @@ public class MySkyProject2D : MonoBehaviour
         starPrefab.transform.localScale = Vector3.one;
     }
 
-    //星の輝きを更新する関数
-    public void UpdateConstellationBloom(ConstellationData data)
-    {
-        if (skyRoot == null) return;
-        Transform targetTransform = skyRoot.Find(data.constellationName);
-        if (targetTransform == null) return;
 
-        // 計算: いいね数が多いほど値が大きくなる (例: 1.0 -> 1.2 -> 1.4 ...)
-        float intensity = baseIntensity + (data.likeCount * intensityPerLike);
-        // 上限キャップ
-        intensity = Mathf.Min(intensity, maxIntensity);
-
-        // HDRカラーを作成 (RGBすべてを1.0以上にすると白く光る)
-        Color hdrColor = new Color(intensity, intensity, intensity, 1f);
-
-        // 星（SpriteRenderer）をすべて取得して色をセット
-        SpriteRenderer[] stars = targetTransform.GetComponentsInChildren<SpriteRenderer>();
-        foreach (var starSprite in stars)
-        {
-            starSprite.color = hdrColor;
-        }
-
-        Debug.Log($"[{data.constellationName}] Bloom強度更新: {intensity}");
-    }
     void CheckSavedData()
     {
         if (PlayerPrefs.HasKey("LocalSaveList"))

@@ -53,8 +53,8 @@ MonoBehaviour:
   manualSpawnArea: {x: 60, y: 60}
   minSingleStarSize: 0.0075
   maxSingleStarSize: 0.025
-  minBgStarBrightness: 0.5
-  maxBgStarBrightness: 1.5
+  minBgStarBrightness: 1
+  maxBgStarBrightness: 2
 --- !u!1 &2265521392513203063
 GameObject:
   m_ObjectHideFlags: 0

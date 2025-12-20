@@ -244,7 +244,7 @@ public class MyPageManager : MonoBehaviour
 
     new private Rigidbody2D rigidbody;
 
-    private List<Frame2> frames;
+    private List<Frame> frames;
     private List<Button> buttons;
 
     private bool isInFocusView;
@@ -286,9 +286,9 @@ public class MyPageManager : MonoBehaviour
             Debug.Log("datas[index].constellationName = " + datas[index].constellationName);
             Debug.Log("datas[index].descirption = " + datas[index].description);
 
-            this.frames.Add(Frame2.ConstructFrame(datas[index]));
+            this.frames.Add(Frame.ConstructFrame(datas[index]));
             this.buttons.Add(Instantiate(this.buttonPrefab, this.transform.position, Quaternion.identity).transform.GetComponent<Button>());
-            this.frames[index].transform.SetParent(this.transform);
+            this.frames[index].transform.SetParent(this.transform.Find("FrameAnchor"));
             this.buttons[index].transform.SetParent(frames[index].transform);
 
             frames[index].transform.position = this.transform.position + new Vector3(index % row * space.x, -index / row * space.y, 0f);
@@ -313,9 +313,13 @@ public class MyPageManager : MonoBehaviour
             float value = Camera.main.ScreenToWorldPoint(Pointer.current.position.ReadValue()).y;
             float delta = value - pvalue;
 
-            foreach (Frame2 frame in frames)
+            foreach (Frame frame in frames)
             {
-                if (frame.isTryExpand) FocusOn(frame).Forget();
+                if (frame.isTryExpand)
+                {
+                    FocusOn(frame).Forget();
+                    break;
+                }
             }
 
             if ((int)(this.frames.Count / 3) >= 2)
@@ -347,16 +351,19 @@ public class MyPageManager : MonoBehaviour
 
     public void Exit()
     {
-
+        foreach (Frame frame in frames) frame.button.gameObject.SetActive(true);
+        
         this.isTryExit = true;
     }
 
-    public async UniTask FocusOn(Frame2 target)
+    public async UniTask FocusOn(Frame target)
     {
         this.isInFocusView = true;
 
+        foreach (Frame frame in frames) frame.button.gameObject.SetActive(false);
 
-        for(int index = 0; index < frames.Count; ++index)
+
+        for (int index = 0; index < frames.Count; ++index)
         {
             frames[index].isTryExpand = false;
         }
@@ -458,10 +465,10 @@ public class MyPageManager : MonoBehaviour
 
     }
 
-    private async UniTask MoveOthers(Frame2 frame)
+    private async UniTask MoveOthers(Frame frame)
     {
         /*
-        List<Frame2> others = (from other in this.frames where other != frame select other).ToList();
+        List<Frame> others = (from other in this.frames where other != frame select other).ToList();
         List<Vector3> defaultPositions = (from other in others select other.transform.position + new Vector3((int)(this.frames.IndexOf(other) % row) * space.x, -((int)this.frames.IndexOf(other) / row) * space.y, 0f)).ToList();
         */
 
@@ -552,7 +559,7 @@ public class MyPageManager : MonoBehaviour
         */
     }
 
-    private async UniTask MoveTarget(Frame2 frame)
+    private async UniTask MoveTarget(Frame frame)
     {
         await UniTask.Delay(200);
 
@@ -616,7 +623,7 @@ public class MyPageManager : MonoBehaviour
         this.isTryExit = false;
 
     }
-    private async UniTask FadeInText(Frame2 frame)
+    private async UniTask FadeInText(Frame frame)
     {
         int length = "<align=left>".Length;
 
