@@ -5,6 +5,9 @@ public class Frame2 : MonoBehaviour
 {
     public ConstellationData data;
     [System.NonSerialized]public GameObject constellationParent;
+    public Button button;
+
+    public bool isTryExpand;
 
     public GameObject Anchor
     {
@@ -30,7 +33,7 @@ public class Frame2 : MonoBehaviour
 
         result.data = data;
 
-        result.isExpanded = false;
+        result.isTryExpand = false;
         result.gameObject.name = $"Frame for \"{data.constellationName}\"";
         result.Text.transform.GetComponent<Text>().text = result.Date;
 
@@ -40,25 +43,9 @@ public class Frame2 : MonoBehaviour
         return result;
     }
 
-    private bool isExpanded;
-
     public void Expand()
     {
-        this.isExpanded = true;
+        this.isTryExpand = true;
     }
 
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
-    {
-
-    }
-
-    // Update is called once per frame
-    async void Update()
-    {
-        if (this.isExpanded)
-        {
-            
-        }
-    }
 }

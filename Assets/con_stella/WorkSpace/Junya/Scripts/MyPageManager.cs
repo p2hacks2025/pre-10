@@ -4,10 +4,11 @@ using Cysharp.Threading.Tasks;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
-using TMPro;
+using static UnityEditor.IMGUI.Controls.CapsuleBoundsHandle;
 
 #if frame
 public class MyPageManager : MonoBehaviour
@@ -247,6 +248,23 @@ public class MyPageManager : MonoBehaviour
     private bool isInFocusView;
     private bool isTryExit;
 
+    private float height;
+    private float defaultY;
+
+    private float deltaY
+    {
+        get
+        {
+            return this.transform.position.y - defaultY;
+        }
+        set
+        {
+            Vector3 tmp = this.transform.position;
+            tmp.y = value + defaultY;
+            this.transform.position = tmp;
+        }
+    }
+
     void Start()
     {
         instance = this;
@@ -275,6 +293,8 @@ public class MyPageManager : MonoBehaviour
             buttons[index].onClick.AddListener(() => FocusOn(frames[index]));
         }
 
+        this.height = (int)(this.frames.Count / row) * space.y /*+ this.framePrefab.transform.localScale.y*/;
+        this.defaultY = this.transform.position.y /*+ this.framePrefab.transform.localScale.y*/;
 
         this.isInFocusView = false;
     }
@@ -288,21 +308,39 @@ public class MyPageManager : MonoBehaviour
             float value = Camera.main.ScreenToWorldPoint(Pointer.current.position.ReadValue()).y;
             float delta = value - pvalue;
 
-            if (Input.GetMouseButton(0))
+            foreach (Frame2 frame in frames)
             {
-                this.rigidbody.AddForce(Vector3.up * delta * forceFactor);
-                //this.transform.position += Vector3.up * delta;
-            }
-            this.rigidbody.AddForce(-Vector3.up * frictionFactor * this.rigidbody.linearVelocity.y);
-
-            if (Input.GetKeyDown(KeyCode.F))
-            {
-                await FocusOn(frames[0]);
+                if (frame.isTryExpand) FocusOn(frame).Forget();
             }
 
+            if ((int)(this.frames.Count / 3) >= 2)
+            {
 
-            pvalue = value;
+                if (Input.GetMouseButton(0))
+                {
+                    this.rigidbody.AddForce(Vector3.up * delta * forceFactor);
+                    //this.transform.position += Vector3.up * delta;
+                }
+                this.rigidbody.AddForce(-Vector3.up * frictionFactor * this.rigidbody.linearVelocity.y);
+
+                pvalue = value;
+
+                if (deltaY < -height)
+                {
+                    deltaY = -height;
+                    this.rigidbody.linearVelocity = Vector3.zero;
+                    //this.transform.position = new(this.transform.position.x, this.anchor.transform.position.y);
+                }
+                else if (deltaY > height)
+                {
+                    //this.transform.position = new(this.transform.position.x, this.anchor.transform.position.y);
+                    deltaY = height;
+                    this.rigidbody.linearVelocity = Vector3.zero;
+                }
+
+            }
         }
+
         else
         {
             if (Input.GetKeyDown(KeyCode.E)) Exit();
@@ -315,16 +353,22 @@ public class MyPageManager : MonoBehaviour
         this.isTryExit = true;
     }
 
-    public async UniTask FocusOn(Frame2 frame)
+    public async UniTask FocusOn(Frame2 target)
     {
         this.isInFocusView = true;
+
+        for(int index = 0; index < frames.Count; ++index)
+        {
+            frames[index].isTryExpand = false;
+        }
 
         await UniTask.Delay(100);
 
         upperSpace.transform.GetComponent<SpriteRenderer>().sortingOrder = 0;
         this.rigidbody.linearVelocity = Vector3.zero;
 
-        await UniTask.WhenAll(MoveOthers(frame), MoveTarget(frame));
+        MoveOthers(target).Forget();
+        await UniTask.WhenAll(MoveTarget(target));
         /*
         MoveOthers(frame).Forget();
         MoveTarget(frame).Forget();
@@ -340,19 +384,41 @@ public class MyPageManager : MonoBehaviour
             await UniTask.Yield();
         }
     }
+    private async UniTask WaitNotFocusOn()
+    {
+        while (this.isInFocusView)
+        {
+            await UniTask.Yield();
+        }
+    }
 
     private async UniTask MoveOthers(Frame2 frame)
     {
-        IEnumerable<Frame2> others = from other in this.frames where other != frame select other;
-        IEnumerable<Vector3> defaultPositions = from other in others select other.gameObject.transform.position;
+        /*
+        List<Frame2> others = (from other in this.frames where other != frame select other).ToList();
+        List<Vector3> defaultPositions = (from other in others select other.transform.position + new Vector3((int)(this.frames.IndexOf(other) % row) * space.x, -((int)this.frames.IndexOf(other) / row) * space.y, 0f)).ToList();
+        */
+
+        Vector3[] defaultPositions = new Vector3[this.frames.Count];
+        for (int index = 0; index < this.frames.Count; ++index)
+        {
+            defaultPositions[index] = this.transform.position + new Vector3(index % row * space.x, -index / row * space.y, 0f) /*+ Vector3.up * this.transform.position.y*/;
+        }
+
 
         float duration = 0;
 
-        while (duration < 1)
+        float speed = 1.5f;
+        while (duration < 1.5f)
         {
-            for (int index = 0; index < others.Count(); ++index)
+            
+            for (int index = 0; index < this.frames.Count(); ++index)
             {
-                others.ToList()[index].gameObject.transform.position = defaultPositions.ToList()[index] + Vector3.right * Curve(duration);
+                if (this.frames[index] != frame)
+                {
+
+                    frames[index].gameObject.transform.position = defaultPositions[index] + Vector3.right * Curve(duration * speed) * 20f;
+                }
             }
 
             duration += Time.deltaTime;
@@ -360,27 +426,67 @@ public class MyPageManager : MonoBehaviour
             await UniTask.Yield();
         }
 
+        for (int index = 0; index < this.frames.Count(); ++index)
+        {
+            if (this.frames[index] != frame) frames[index].transform.position = defaultPositions[index] + Vector3.right * 20f;
+        }
+
         //exit
-        await WaitExit();
+        await WaitNotFocusOn();
 
         duration = 0;
 
-        while (duration < 1)
+        speed = 1.8f;
+        while (duration < 1.5f)
+        {
+
+            for (int index = 0; index < this.frames.Count(); ++index)
+            {
+                if (this.frames[index] != frame)
+                {
+
+                    frames[index].gameObject.transform.position = defaultPositions[index] + Vector3.right * (1f - Curve(duration * speed)) * 20f;
+                }
+            }
+
+            duration += Time.deltaTime;
+
+            await UniTask.Yield();
+        }
+
+        for (int index = 0; index < this.frames.Count(); ++index)
+        {
+            if (this.frames[index] != frame) frames[index].transform.position = defaultPositions[index];
+        }
+        /*
+        speed = 1.8f;
+        while (duration < 1f)
         {
             for (int index = 0; index < others.Count(); ++index)
             {
                 others.ToList()[index].gameObject.transform.position = defaultPositions.ToList()[index] - Vector3.right * Curve(duration);
             }
 
-            duration += Time.deltaTime;
+            duration += Time.deltaTime * speed;
 
             await UniTask.Yield();
         }
+
+        for (int index = 0; index < frames.Count(); ++index)
+        {
+            frames[index].transform.position = this.transform.position + new Vector3(index % row * space.x, -index / row * space.y, 0f);
+        }
+        */
+        /*
+        for (int index = 0; index < others.Count(); ++index)
+        {
+            others.ToList()[index].gameObject.transform.position = defaultPositions.ToList()[index] - Vector3.right;
+        }
+        */
     }
 
     public float factor1;
     public float factor2;
-    public float factor3;
 
     private async UniTask MoveTarget(Frame2 frame)
     {
@@ -396,7 +502,7 @@ public class MyPageManager : MonoBehaviour
 
         Vector3 delta = anchor.transform.position - defaultPosition + 6f * Vector3.down;
 
-        while (duration < 1)
+        while (duration < 2)
         {
 
             frame.transform.position = defaultPosition + delta * Curve(duration);
@@ -450,7 +556,7 @@ public class MyPageManager : MonoBehaviour
     {
         int length = "<align=left>".Length;
 
-        string fullText = "<align=left>" + frame.Date + "\0\n\n\n\n\n\n\n\n\n\n\n\n\n" + frame.data.constellationName + " 座\n\n" + frame.data.description;
+        string fullText = "<align=left>" + frame.Date + "\0\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n" + frame.data.constellationName + " 座\n\n" + frame.data.description;
         while (length <= fullText.Length)
         {
             this.description.transform.GetComponent<TMP_Text>().text = fullText[0..length];
@@ -474,7 +580,7 @@ public class MyPageManager : MonoBehaviour
 
             length++;
 
-            await UniTask.Delay(50);
+            await UniTask.Delay(25);
         }
     }
 
