@@ -3,7 +3,7 @@ using UnityEngine.UI;
 
 public class Frame2 : MonoBehaviour
 {
-    public readonly ConstellationData data;
+    public ConstellationData data;
     [System.NonSerialized]public GameObject constellationParent;
 
     public GameObject Anchor
@@ -19,7 +19,7 @@ public class Frame2 : MonoBehaviour
     {
         get
         {
-            Debug.Log(data != null);
+            Debug.Log(data?.createdAt);
             return this.data.createdAt.Split(" ")[0].Replace("/", ".").Trim();
         }
     }
@@ -27,6 +27,8 @@ public class Frame2 : MonoBehaviour
     public static Frame2 ConstructFrame(ConstellationData data)
     {
         Frame2 result = Instantiate(MyPageManager.instance.framePrefab, MyPageManager.instance.transform.position, Quaternion.identity).transform.GetComponent<Frame2>();
+
+        result.data = data;
 
         result.isExpanded = false;
         result.gameObject.name = $"Frame for \"{data.constellationName}\"";
