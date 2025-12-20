@@ -462,7 +462,7 @@ Canvas:
   m_AdditionalShaderChannelsFlag: 25
   m_UpdateRectTransformForStandalone: 0
   m_SortingLayerID: 0
-  m_SortingOrder: 0
+  m_SortingOrder: 2
   m_TargetDisplay: 0
 --- !u!224 &1060226337
 RectTransform:
@@ -572,7 +572,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1220764429}
-  - component: {fileID: 1220764428}
   - component: {fileID: 1220764430}
   m_Layer: 0
   m_Name: MySkyManager
@@ -581,38 +580,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &1220764428
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1220764427}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8ab21b42555a5124f9c77009a0c02dc1, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Sub
-  starPrefab: {fileID: 6168859803629466862, guid: 84b4ea7b0f5866d42a4c6a0696464e94, type: 3}
-  linePrefab: {fileID: 2270894329751712333, guid: 8fa84bea1ab5c7f4bb11721e49c06c19, type: 3}
-  skyRoot: {fileID: 0}
-  starAmount: 2000
-  spawnArea: {x: 60, y: 60}
-  maxDisplayScale: 0.005
-  minDisplayScale: 0.003
-  minSingleStarSize: 0.05
-  maxSingleStarSize: 0.1
-  minBgStarBrightness: 0.5
-  maxBgStarBrightness: 1.5
-  baseLineWidth: 1
-  cameraController: {fileID: 0}
-  collisionCheckRadius: 10
-  maxRetryCount: 10
-  baseIntensity: 1
-  intensityPerLike: 0.5
-  maxIntensity: 4
-  currentWrapper:
-    list: []
 --- !u!4 &1220764429
 Transform:
   m_ObjectHideFlags: 0
@@ -641,7 +608,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MySkyProject2D
   starPrefab: {fileID: 6168859803629466862, guid: 84b4ea7b0f5866d42a4c6a0696464e94, type: 3}
-  linePrefab: {fileID: 2270894329751712333, guid: 8fa84bea1ab5c7f4bb11721e49c06c19, type: 3}
+  linePrefab: {fileID: 2270894329751712333, guid: 12007a0a7c424e341ab55cab309ccfce, type: 3}
   skyRoot: {fileID: 0}
   starAmount: 1000
   spawnArea: {x: 18, y: 600}
@@ -652,6 +619,7 @@ MonoBehaviour:
   minBgStarBrightness: 0.5
   maxBgStarBrightness: 1.5
   baseLineWidth: 1
+  starScale: 10
   cameraController: {fileID: 0}
   collisionCheckRadius: 10
   maxRetryCount: 10
@@ -710,11 +678,12 @@ MonoBehaviour:
   pointer: {fileID: 942251711}
   anchor: {fileID: 2122888204}
   description: {fileID: 1804435572}
+  upperSpace: {fileID: 405060786}
   space: {x: 5.4, y: 7.6}
   row: 3
-  forceFactor: 350
-  frictionFactor: 1
-  factor1: 4
+  forceFactor: 400
+  frictionFactor: 2
+  factor1: 40
   factor2: 1
   factor3: 0
 --- !u!50 &1668169402
@@ -869,7 +838,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: -5}
+  m_AnchoredPosition: {x: 0, y: 11}
   m_SizeDelta: {x: 14, y: 5}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1804435574
@@ -892,12 +861,10 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: '
-
-'
+  m_text: 
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2100000, guid: 79459efec17a4d00a321bdcc27bbc385, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 38341a98bff2d4243b91a5b70f62eb1e, type: 2}
+  m_sharedMaterial: {fileID: -1991279713479306777, guid: 38341a98bff2d4243b91a5b70f62eb1e, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []

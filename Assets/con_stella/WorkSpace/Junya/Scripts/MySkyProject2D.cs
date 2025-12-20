@@ -21,6 +21,7 @@ public class MySkyProject2D : MonoBehaviour
     [SerializeField] private float minBgStarBrightness = 0.5f; // à√Çﬂ
     [SerializeField] private float maxBgStarBrightness = 1.5f; // è≠ÇµåıÇÈ
     [SerializeField] private float baseLineWidth = 2.0f;
+    [SerializeField] private float starScale = 0f;
 
     [Header("UIòAåg")]
     [SerializeField] private SkyCameraController cameraController;
@@ -230,10 +231,10 @@ public class MySkyProject2D : MonoBehaviour
 
             Vector3 starPos = new Vector3(sData.x * currentScale, sData.y * currentScale, 0);
             star.transform.localPosition = starPos;
-            star.transform.localScale = Vector3.one * sData.scale * currentScale;
+            star.transform.localScale = Vector3.one * sData.scale * currentScale * 2f;
 
             var sprite = star.GetComponent<SpriteRenderer>();
-            if (sprite != null) sprite.sortingOrder = 100;
+            if (sprite != null) sprite.sortingOrder = 1;
 
             idToObjMap[sData.id] = star;
         }
@@ -285,7 +286,11 @@ public class MySkyProject2D : MonoBehaviour
         lr.SetPosition(0, startLocal);
         lr.SetPosition(1, endLocal);
         lr.widthMultiplier = baseLineWidth * scale;
-        lr.sortingOrder = 90;
+
+        lr.startWidth = 0.03f;
+        lr.endWidth = 0.03f;
+
+        lr.sortingOrder = 1;
     }
 
     private void GenerateSingleStar()

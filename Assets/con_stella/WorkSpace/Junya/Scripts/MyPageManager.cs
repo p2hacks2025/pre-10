@@ -1,4 +1,4 @@
-#define frame2
+ï»¿#define frame2
 
 using Cysharp.Threading.Tasks;
 using System.Collections;
@@ -92,10 +92,10 @@ public class MyPageManager : MonoBehaviour
             other.gameObject.SetActive(false);
         }
 
-        //ƒJƒƒ‰ˆÊ’u’²®
+        //ã‚«ãƒ¡ãƒ©ä½ç½®èª¿æ•´
         await MoveCameraSmoothly(target.Anchor);
         
-        //“WŠJ
+        //å±•é–‹
         await target.Expand();
 
         foreach (Frame other in others)
@@ -173,39 +173,39 @@ public class MyPageManager : MonoBehaviour
 
     public static List<ConstellationData> GetLocalData()
     {
-        // 1. ƒL[‚ª‚ ‚é‚©Šm”F
+        // 1. ã‚­ãƒ¼ãŒã‚ã‚‹ã‹ç¢ºèª
         if (!PlayerPrefs.HasKey("LocalSaveList"))
         {
-            Debug.LogError("y‘{¸ƒGƒ‰[zƒZ[ƒuƒf[ƒ^ 'LocalSaveList' ‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñI•Û‘¶ƒ{ƒ^ƒ“‚ğ‰Ÿ‚µ‚Ü‚µ‚½‚©H");
+            Debug.LogError("ã€æœæŸ»ã‚¨ãƒ©ãƒ¼ã€‘ã‚»ãƒ¼ãƒ–ãƒ‡ãƒ¼ã‚¿ 'LocalSaveList' ãŒè¦‹ã¤ã‹ã‚Šã¾ã›ã‚“ï¼ä¿å­˜ãƒœã‚¿ãƒ³ã‚’æŠ¼ã—ã¾ã—ãŸã‹ï¼Ÿ");
 
-            // ‚à‚µŒÃ‚¢ƒL[(TestSaveData)‚ªc‚Á‚Ä‚¢‚é‚È‚çA‹³‚¦‚Ä‚ ‚°‚é
+            // ã‚‚ã—å¤ã„ã‚­ãƒ¼(TestSaveData)ãŒæ®‹ã£ã¦ã„ã‚‹ãªã‚‰ã€æ•™ãˆã¦ã‚ã’ã‚‹
             if (PlayerPrefs.HasKey("TestSaveData"))
             {
-                Debug.LogWarning("¦ 'TestSaveData' ‚ÍŒ©‚Â‚©‚è‚Ü‚µ‚½B•Û‘¶‘¤‚ÌƒR[ƒh‚ªŒÃ‚¢iƒŠƒXƒg•Û‘¶‚É‚È‚Á‚Ä‚¢‚È‚¢j‰Â”\«‚ª‚ ‚è‚Ü‚·B");
+                Debug.LogWarning("â€» 'TestSaveData' ã¯è¦‹ã¤ã‹ã‚Šã¾ã—ãŸã€‚ä¿å­˜å´ã®ã‚³ãƒ¼ãƒ‰ãŒå¤ã„ï¼ˆãƒªã‚¹ãƒˆä¿å­˜ã«ãªã£ã¦ã„ãªã„ï¼‰å¯èƒ½æ€§ãŒã‚ã‚Šã¾ã™ã€‚");
             }
             return null;
         }
 
-        // 2. JSON‚Ì’†g‚ğŠm”F
+        // 2. JSONã®ä¸­èº«ã‚’ç¢ºèª
         string json = PlayerPrefs.GetString("LocalSaveList");
-        Debug.Log("y‘{¸2zJSONƒf[ƒ^‚ğ”­Œ©: " + json);
+        Debug.Log("ã€æœæŸ»2ã€‘JSONãƒ‡ãƒ¼ã‚¿ã‚’ç™ºè¦‹: " + json);
 
-        // 3. ƒŠƒXƒg‚É•œŒ³‚Å‚«‚é‚©Šm”F
+        // 3. ãƒªã‚¹ãƒˆã«å¾©å…ƒã§ãã‚‹ã‹ç¢ºèª
         ConstellationListWrapper wrapper = JsonUtility.FromJson<ConstellationListWrapper>(json);
 
         if (wrapper == null)
         {
-            Debug.LogError("y‘{¸ƒGƒ‰[zJSON‚Ì‰ğÍ‚É¸”s‚µ‚Ü‚µ‚½Bƒf[ƒ^‚ª‰ó‚ê‚Ä‚¢‚Ü‚·B");
+            Debug.LogError("ã€æœæŸ»ã‚¨ãƒ©ãƒ¼ã€‘JSONã®è§£æã«å¤±æ•—ã—ã¾ã—ãŸã€‚ãƒ‡ãƒ¼ã‚¿ãŒå£Šã‚Œã¦ã„ã¾ã™ã€‚");
             return null;
         }
 
         if (wrapper.list == null || wrapper.list.Count == 0)
         {
-            Debug.LogError("y‘{¸ƒGƒ‰[zƒŠƒXƒg‚Ì’†g‚ª‹ó‚Á‚Û(0Œ)‚Å‚·I•Û‘¶ˆ—‚ª‚¤‚Ü‚­‚¢‚Á‚Ä‚¢‚Ü‚¹‚ñB");
+            Debug.LogError("ã€æœæŸ»ã‚¨ãƒ©ãƒ¼ã€‘ãƒªã‚¹ãƒˆã®ä¸­èº«ãŒç©ºã£ã½(0ä»¶)ã§ã™ï¼ä¿å­˜å‡¦ç†ãŒã†ã¾ãã„ã£ã¦ã„ã¾ã›ã‚“ã€‚");
             return null;
         }
 
-        Debug.Log($"y‘{¸3z{wrapper.list.Count} Œ‚Ìƒf[ƒ^‚ğŠm”FB¶¬‚ğŠJn‚µ‚Ü‚·...");
+        Debug.Log($"ã€æœæŸ»3ã€‘{wrapper.list.Count} ä»¶ã®ãƒ‡ãƒ¼ã‚¿ã‚’ç¢ºèªã€‚ç”Ÿæˆã‚’é–‹å§‹ã—ã¾ã™...");
 
 
         return wrapper.list;
@@ -231,6 +231,7 @@ public class MyPageManager : MonoBehaviour
     public GameObject pointer;
     public GameObject anchor;
     public GameObject description;
+    public GameObject upperSpace;
 
     [Header("Preferences")]
     public Vector2 space;
@@ -244,6 +245,7 @@ public class MyPageManager : MonoBehaviour
     private List<Button> buttons;
 
     private bool isInFocusView;
+    private bool isTryExit;
 
     void Start()
     {
@@ -253,10 +255,15 @@ public class MyPageManager : MonoBehaviour
 
         List<ConstellationData> datas = GetLocalData();
 
+        Debug.Log("datas.Count = " + datas.Count);
+
         this.frames = new();
         this.buttons = new();
         for (int index = 0; index < datas.Count; ++index)
         {
+            Debug.Log("datas[index].constellationName = " + datas[index].constellationName);
+            Debug.Log("datas[index].descirption = " + datas[index].description);
+
             this.frames.Add(Frame2.ConstructFrame(datas[index]));
             this.buttons.Add(Instantiate(this.buttonPrefab, this.transform.position, Quaternion.identity).transform.GetComponent<Button>());
             this.frames[index].transform.SetParent(this.transform);
@@ -277,6 +284,7 @@ public class MyPageManager : MonoBehaviour
     {
         if (!this.isInFocusView)
         {
+
             float value = Camera.main.ScreenToWorldPoint(Pointer.current.position.ReadValue()).y;
             float delta = value - pvalue;
 
@@ -285,15 +293,26 @@ public class MyPageManager : MonoBehaviour
                 this.rigidbody.AddForce(Vector3.up * delta * forceFactor);
                 //this.transform.position += Vector3.up * delta;
             }
-            this.rigidbody.AddForce(-Vector3.up * this.rigidbody.linearVelocity.y);
+            this.rigidbody.AddForce(-Vector3.up * frictionFactor * this.rigidbody.linearVelocity.y);
 
             if (Input.GetKeyDown(KeyCode.F))
             {
                 await FocusOn(frames[0]);
             }
 
+
             pvalue = value;
         }
+        else
+        {
+            if (Input.GetKeyDown(KeyCode.E)) Exit();
+        }
+    }
+
+    public void Exit()
+    {
+        Debug.LogWarning("exit");
+        this.isTryExit = true;
     }
 
     public async UniTask FocusOn(Frame2 frame)
@@ -302,13 +321,26 @@ public class MyPageManager : MonoBehaviour
 
         await UniTask.Delay(100);
 
+        upperSpace.transform.GetComponent<SpriteRenderer>().sortingOrder = 0;
         this.rigidbody.linearVelocity = Vector3.zero;
 
+        await UniTask.WhenAll(MoveOthers(frame), MoveTarget(frame));
+        /*
         MoveOthers(frame).Forget();
         MoveTarget(frame).Forget();
-        FadeInText(frame).Forget();
+        */
 
+        this.isInFocusView = false;
     }
+
+    private async UniTask WaitExit()
+    {
+        while (!this.isTryExit)
+        {
+            await UniTask.Yield();
+        }
+    }
+
     private async UniTask MoveOthers(Frame2 frame)
     {
         IEnumerable<Frame2> others = from other in this.frames where other != frame select other;
@@ -321,6 +353,23 @@ public class MyPageManager : MonoBehaviour
             for (int index = 0; index < others.Count(); ++index)
             {
                 others.ToList()[index].gameObject.transform.position = defaultPositions.ToList()[index] + Vector3.right * Curve(duration);
+            }
+
+            duration += Time.deltaTime;
+
+            await UniTask.Yield();
+        }
+
+        //exit
+        await WaitExit();
+
+        duration = 0;
+
+        while (duration < 1)
+        {
+            for (int index = 0; index < others.Count(); ++index)
+            {
+                others.ToList()[index].gameObject.transform.position = defaultPositions.ToList()[index] - Vector3.right * Curve(duration);
             }
 
             duration += Time.deltaTime;
@@ -342,43 +391,91 @@ public class MyPageManager : MonoBehaviour
         Vector3 defaultPosition = frame.transform.position;
         Vector3 defaultScale = frame.transform.localScale;
 
-        Vector3 defaultConstellationPosition = frame.constellationParent.transform.position;
+        Vector3 defaultConstellationPosition = frame.constellationParent.transform.localPosition;
         Vector3 defaultConstellationScale = frame.constellationParent.transform.localScale;
 
-
-        Vector3 delta = anchor.transform.position - defaultPosition + 7f * Vector3.down;
+        Vector3 delta = anchor.transform.position - defaultPosition + 6f * Vector3.down;
 
         while (duration < 1)
         {
 
-            Debug.Log(duration);
-
             frame.transform.position = defaultPosition + delta * Curve(duration);
             frame.transform.localScale = defaultScale * (1f + 7f * Curve(duration));
 
-            frame.constellationParent.transform.position = frame.Anchor.transform.position + Vector3.up * factor1 * Curve(duration);
+            //frame.constellationParent.transform.localPosition = Vector3.up * factor1 * Curve(duration);
             frame.constellationParent.transform.localScale = defaultConstellationScale / (1f + factor2 * Curve(duration));
 
             duration += Time.deltaTime * 1.5f;
 
             await UniTask.Yield();
         }
+
+        await FadeInText(frame);
+
+        //exit
+        await WaitExit();
+
+        this.description.transform.GetComponent<TMP_Text>().text = "";
+
+        Debug.Log("inversed");
+
+        duration = 0;
+
+        defaultPosition = frame.transform.position;
+        defaultScale = frame.transform.localScale;
+
+        defaultConstellationPosition = frame.constellationParent.transform.localPosition;
+        defaultConstellationScale = frame.constellationParent.transform.localScale;
+
+        delta = -delta;
+
+        while (duration < 1)
+        {
+            frame.transform.position = defaultPosition + delta * Curve(duration);
+            frame.transform.localScale = defaultScale / (1 + 7 * Curve(duration));
+
+            //frame.constellationParent.transform.localPosition = defaultConstellationPosition - Vector3.up * factor1 * Curve(duration);
+            frame.constellationParent.transform.localScale = defaultConstellationScale * (1f + factor2 * Curve(duration));
+
+
+            duration += Time.deltaTime * 1.5f;
+
+            await UniTask.Yield();
+        }
+
+        this.isTryExit = false;
+
     }
     private async UniTask FadeInText(Frame2 frame)
     {
-        int length = 0;
+        int length = "<align=left>".Length;
 
-        while (length < frame.data.description.Length)
+        string fullText = "<align=left>" + frame.Date + "\0\n\n\n\n\n\n\n\n\n\n\n\n\n" + frame.data.constellationName + " åº§\n\n" + frame.data.description;
+        while (length <= fullText.Length)
         {
+            this.description.transform.GetComponent<TMP_Text>().text = fullText[0..length];
 
-            this.description.transform.GetComponent<TMP_Text>().text = frame.data.description[0..length];
-            
+            if (fullText[length - 1] == '\0')
+            {
+                fullText = fullText.Replace("\0", "</align>");
+                
+                length += "</align>".Length;
+
+                continue;
+            }
+
+            if (fullText[length - 1] == '\n')
+            {
+                length++;
+
+                continue;
+            }
+
+
             length++;
 
-            await UniTask.Delay(100);
+            await UniTask.Delay(50);
         }
-
-        
     }
 
     private static float Curve(float x)
@@ -390,39 +487,39 @@ public class MyPageManager : MonoBehaviour
 
     public static List<ConstellationData> GetLocalData()
     {
-        // 1. ƒL[‚ª‚ ‚é‚©Šm”F
+        // 1. ã‚­ãƒ¼ãŒã‚ã‚‹ã‹ç¢ºèª
         if (!PlayerPrefs.HasKey("LocalSaveList"))
         {
-            Debug.LogError("y‘{¸ƒGƒ‰[zƒZ[ƒuƒf[ƒ^ 'LocalSaveList' ‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñI•Û‘¶ƒ{ƒ^ƒ“‚ğ‰Ÿ‚µ‚Ü‚µ‚½‚©H");
+            Debug.LogError("ã€æœæŸ»ã‚¨ãƒ©ãƒ¼ã€‘ã‚»ãƒ¼ãƒ–ãƒ‡ãƒ¼ã‚¿ 'LocalSaveList' ãŒè¦‹ã¤ã‹ã‚Šã¾ã›ã‚“ï¼ä¿å­˜ãƒœã‚¿ãƒ³ã‚’æŠ¼ã—ã¾ã—ãŸã‹ï¼Ÿ");
 
-            // ‚à‚µŒÃ‚¢ƒL[(TestSaveData)‚ªc‚Á‚Ä‚¢‚é‚È‚çA‹³‚¦‚Ä‚ ‚°‚é
+            // ã‚‚ã—å¤ã„ã‚­ãƒ¼(TestSaveData)ãŒæ®‹ã£ã¦ã„ã‚‹ãªã‚‰ã€æ•™ãˆã¦ã‚ã’ã‚‹
             if (PlayerPrefs.HasKey("TestSaveData"))
             {
-                Debug.LogWarning("¦ 'TestSaveData' ‚ÍŒ©‚Â‚©‚è‚Ü‚µ‚½B•Û‘¶‘¤‚ÌƒR[ƒh‚ªŒÃ‚¢iƒŠƒXƒg•Û‘¶‚É‚È‚Á‚Ä‚¢‚È‚¢j‰Â”\«‚ª‚ ‚è‚Ü‚·B");
+                Debug.LogWarning("â€» 'TestSaveData' ã¯è¦‹ã¤ã‹ã‚Šã¾ã—ãŸã€‚ä¿å­˜å´ã®ã‚³ãƒ¼ãƒ‰ãŒå¤ã„ï¼ˆãƒªã‚¹ãƒˆä¿å­˜ã«ãªã£ã¦ã„ãªã„ï¼‰å¯èƒ½æ€§ãŒã‚ã‚Šã¾ã™ã€‚");
             }
             return null;
         }
 
-        // 2. JSON‚Ì’†g‚ğŠm”F
+        // 2. JSONã®ä¸­èº«ã‚’ç¢ºèª
         string json = PlayerPrefs.GetString("LocalSaveList");
-        Debug.Log("y‘{¸2zJSONƒf[ƒ^‚ğ”­Œ©: " + json);
+        Debug.Log("ã€æœæŸ»2ã€‘JSONãƒ‡ãƒ¼ã‚¿ã‚’ç™ºè¦‹: " + json);
 
-        // 3. ƒŠƒXƒg‚É•œŒ³‚Å‚«‚é‚©Šm”F
+        // 3. ãƒªã‚¹ãƒˆã«å¾©å…ƒã§ãã‚‹ã‹ç¢ºèª
         ConstellationListWrapper wrapper = JsonUtility.FromJson<ConstellationListWrapper>(json);
 
         if (wrapper == null)
         {
-            Debug.LogError("y‘{¸ƒGƒ‰[zJSON‚Ì‰ğÍ‚É¸”s‚µ‚Ü‚µ‚½Bƒf[ƒ^‚ª‰ó‚ê‚Ä‚¢‚Ü‚·B");
+            Debug.LogError("ã€æœæŸ»ã‚¨ãƒ©ãƒ¼ã€‘JSONã®è§£æã«å¤±æ•—ã—ã¾ã—ãŸã€‚ãƒ‡ãƒ¼ã‚¿ãŒå£Šã‚Œã¦ã„ã¾ã™ã€‚");
             return null;
         }
 
         if (wrapper.list == null || wrapper.list.Count == 0)
         {
-            Debug.LogError("y‘{¸ƒGƒ‰[zƒŠƒXƒg‚Ì’†g‚ª‹ó‚Á‚Û(0Œ)‚Å‚·I•Û‘¶ˆ—‚ª‚¤‚Ü‚­‚¢‚Á‚Ä‚¢‚Ü‚¹‚ñB");
+            Debug.LogError("ã€æœæŸ»ã‚¨ãƒ©ãƒ¼ã€‘ãƒªã‚¹ãƒˆã®ä¸­èº«ãŒç©ºã£ã½(0ä»¶)ã§ã™ï¼ä¿å­˜å‡¦ç†ãŒã†ã¾ãã„ã£ã¦ã„ã¾ã›ã‚“ã€‚");
             return null;
         }
 
-        Debug.Log($"y‘{¸3z{wrapper.list.Count} Œ‚Ìƒf[ƒ^‚ğŠm”FB¶¬‚ğŠJn‚µ‚Ü‚·...");
+        Debug.Log($"ã€æœæŸ»3ã€‘{wrapper.list.Count} ä»¶ã®ãƒ‡ãƒ¼ã‚¿ã‚’ç¢ºèªã€‚ç”Ÿæˆã‚’é–‹å§‹ã—ã¾ã™...");
 
 
         return wrapper.list;
