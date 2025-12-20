@@ -55,7 +55,7 @@ public class SkyCameraController : MonoBehaviour
 
         // ズーム処理（マウスホイール & ピンチ操作）
         HandleZoom();
-        HandleTouchZoom(); // ★追加
+        HandleTouchZoom();
     }
 
     private void HandlePan()
