@@ -8,6 +8,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
+using static TMPro.SpriteAssetUtilities.TexturePacker_JsonArray;
 using static UnityEditor.IMGUI.Controls.CapsuleBoundsHandle;
 
 #if frame
@@ -233,6 +234,7 @@ public class MyPageManager : MonoBehaviour
     public GameObject anchor;
     public GameObject description;
     public GameObject upperSpace;
+    public GameObject exit;
 
     [Header("Preferences")]
     public Vector2 space;
@@ -271,7 +273,9 @@ public class MyPageManager : MonoBehaviour
 
         this.rigidbody = this.transform.GetComponent<Rigidbody2D>();
 
-        List<ConstellationData> datas = GetLocalData();
+        //List<ConstellationData> datas = GetLocalData();
+        
+        List<ConstellationData> datas = new DataManager().LoadAllLocalData().list;
 
         Debug.Log("datas.Count = " + datas.Count);
 
@@ -293,10 +297,11 @@ public class MyPageManager : MonoBehaviour
             buttons[index].onClick.AddListener(() => FocusOn(frames[index]));
         }
 
-        this.height = (int)(this.frames.Count / row) * space.y /*+ this.framePrefab.transform.localScale.y*/;
-        this.defaultY = this.transform.position.y /*+ this.framePrefab.transform.localScale.y*/;
+        this.height = (int)(this.frames.Count / row) * space.y;
+        this.defaultY = this.transform.position.y;
 
         this.isInFocusView = false;
+
     }
 
     private float pvalue;
@@ -329,27 +334,20 @@ public class MyPageManager : MonoBehaviour
                 {
                     deltaY = -height;
                     this.rigidbody.linearVelocity = Vector3.zero;
-                    //this.transform.position = new(this.transform.position.x, this.anchor.transform.position.y);
                 }
                 else if (deltaY > height)
                 {
-                    //this.transform.position = new(this.transform.position.x, this.anchor.transform.position.y);
                     deltaY = height;
                     this.rigidbody.linearVelocity = Vector3.zero;
                 }
 
             }
         }
-
-        else
-        {
-            if (Input.GetKeyDown(KeyCode.E)) Exit();
-        }
     }
 
     public void Exit()
     {
-        Debug.LogWarning("exit");
+
         this.isTryExit = true;
     }
 
@@ -357,22 +355,31 @@ public class MyPageManager : MonoBehaviour
     {
         this.isInFocusView = true;
 
+
         for(int index = 0; index < frames.Count; ++index)
         {
             frames[index].isTryExpand = false;
         }
 
+        MoveUpperSpace().Forget();
+        MoveExit().Forget();
+
         await UniTask.Delay(100);
 
-        upperSpace.transform.GetComponent<SpriteRenderer>().sortingOrder = 0;
+        //upperSpace.transform.GetComponent<SpriteRenderer>().sortingOrder = 0;
         this.rigidbody.linearVelocity = Vector3.zero;
 
-        MoveOthers(target).Forget();
-        await UniTask.WhenAll(MoveTarget(target));
+        //MoveOthers(target).Forget();
+        await UniTask.WhenAll(MoveTarget(target), MoveOthers(target));
+
+
+
         /*
         MoveOthers(frame).Forget();
         MoveTarget(frame).Forget();
         */
+
+        //upperSpace.transform.GetComponent<SpriteRenderer>().sortingOrder = 2;
 
         this.isInFocusView = false;
     }
@@ -384,12 +391,71 @@ public class MyPageManager : MonoBehaviour
             await UniTask.Yield();
         }
     }
-    private async UniTask WaitNotFocusOn()
+
+    private async UniTask MoveUpperSpace()
     {
-        while (this.isInFocusView)
+        Vector3 defaultPositions = this.upperSpace.transform.position;
+
+        float duration = 0;
+
+        float speed = 1.5f;
+        while (duration < 1.5f)
         {
+            this.upperSpace.gameObject.transform.position = defaultPositions + Vector3.up * Curve(duration * speed) * 10f;
+
+            duration += Time.deltaTime;
+
             await UniTask.Yield();
         }
+        this.upperSpace.gameObject.transform.position = defaultPositions + Vector3.up * 10f;
+
+        await WaitExit();
+
+        duration = 0;
+
+        while (duration < 1.5f)
+        {
+            this.upperSpace.gameObject.transform.position = defaultPositions + Vector3.up * (1 - Curve(duration * speed)) * 10f;
+
+            duration += Time.deltaTime;
+
+            await UniTask.Yield();
+        }
+        this.upperSpace.gameObject.transform.position = defaultPositions;
+
+    }
+
+    private async UniTask MoveExit()
+    {
+        Vector3 defaultPositions = this.exit.transform.position;
+
+        float duration = 0;
+
+        float speed = 1.5f;
+        while (duration < 1.5f)
+        {
+            this.exit.gameObject.transform.position = defaultPositions - Vector3.up * Curve(duration * speed) * 10f;
+
+            duration += Time.deltaTime;
+
+            await UniTask.Yield();
+        }
+        this.exit.gameObject.transform.position = defaultPositions - Vector3.up * 10f;
+
+        await WaitExit();
+
+        duration = 0;
+
+        while (duration < 1.5f)
+        {
+            this.exit.gameObject.transform.position = defaultPositions - Vector3.up * (1 - Curve(duration * speed)) * 10f;
+
+            duration += Time.deltaTime;
+
+            await UniTask.Yield();
+        }
+        this.exit.gameObject.transform.position = defaultPositions;
+
     }
 
     private async UniTask MoveOthers(Frame2 frame)
@@ -421,7 +487,7 @@ public class MyPageManager : MonoBehaviour
                 }
             }
 
-            duration += Time.deltaTime;
+            duration += Time.deltaTime * 1.5f;
 
             await UniTask.Yield();
         }
@@ -432,7 +498,8 @@ public class MyPageManager : MonoBehaviour
         }
 
         //exit
-        await WaitNotFocusOn();
+        //await WaitNotFocusOn();
+        await WaitExit();
 
         duration = 0;
 
@@ -485,9 +552,6 @@ public class MyPageManager : MonoBehaviour
         */
     }
 
-    public float factor1;
-    public float factor2;
-
     private async UniTask MoveTarget(Frame2 frame)
     {
         await UniTask.Delay(200);
@@ -502,26 +566,26 @@ public class MyPageManager : MonoBehaviour
 
         Vector3 delta = anchor.transform.position - defaultPosition + 6f * Vector3.down;
 
-        while (duration < 2)
+        while (duration < 1.5f)
         {
 
             frame.transform.position = defaultPosition + delta * Curve(duration);
             frame.transform.localScale = defaultScale * (1f + 7f * Curve(duration));
 
             //frame.constellationParent.transform.localPosition = Vector3.up * factor1 * Curve(duration);
-            frame.constellationParent.transform.localScale = defaultConstellationScale / (1f + factor2 * Curve(duration));
+            frame.constellationParent.transform.localScale = defaultConstellationScale / (1f + Curve(duration));
 
             duration += Time.deltaTime * 1.5f;
 
             await UniTask.Yield();
         }
 
-        await FadeInText(frame);
+        //await FadeInText(frame);
+        FadeInText(frame).Forget();
 
         //exit
         await WaitExit();
 
-        this.description.transform.GetComponent<TMP_Text>().text = "";
 
         Debug.Log("inversed");
 
@@ -541,7 +605,7 @@ public class MyPageManager : MonoBehaviour
             frame.transform.localScale = defaultScale / (1 + 7 * Curve(duration));
 
             //frame.constellationParent.transform.localPosition = defaultConstellationPosition - Vector3.up * factor1 * Curve(duration);
-            frame.constellationParent.transform.localScale = defaultConstellationScale * (1f + factor2 * Curve(duration));
+            frame.constellationParent.transform.localScale = defaultConstellationScale * (1f + Curve(duration));
 
 
             duration += Time.deltaTime * 1.5f;
@@ -556,10 +620,20 @@ public class MyPageManager : MonoBehaviour
     {
         int length = "<align=left>".Length;
 
-        string fullText = "<align=left>" + frame.Date + "\0\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n" + frame.data.constellationName + " 座\n\n" + frame.data.description;
+        string fullText = "";
+
+        fullText = "<align=left>" + frame.Date + "\0\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n" + frame.data.constellationName + "座\n\n" + frame.data.description;
         while (length <= fullText.Length)
         {
+
+            if (this.isTryExit)
+            {
+
+                break;
+            }
+
             this.description.transform.GetComponent<TMP_Text>().text = fullText[0..length];
+
 
             if (fullText[length - 1] == '\0')
             {
@@ -582,6 +656,11 @@ public class MyPageManager : MonoBehaviour
 
             await UniTask.Delay(25);
         }
+
+        await WaitExit();
+
+        this.description.transform.GetComponent<TMP_Text>().text = "";
+
     }
 
     private static float Curve(float x)
