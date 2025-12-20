@@ -6,6 +6,11 @@ using TMPro;
 
 public class PhotoController : MonoBehaviour
 {
+    public enum StartMode { CameraOnly, GalleryOnly }
+    [Header("起動モード設定")]
+    [SerializeField] private StartMode startMode;
+    [SerializeField] private float autoStartDelay = 2.0f; // 2秒待って起動
+
     [Header("UI設定")]
     [SerializeField] private RawImage previewImage;
     [SerializeField] private TextMeshProUGUI statusText;
@@ -39,6 +44,17 @@ public class PhotoController : MonoBehaviour
             constellationCanvasGroup.alpha = 0f;
         }
         if (frameObject != null) frameObject.SetActive(true);
+
+        // 2秒後に自動で機能を呼び出す
+        StartCoroutine(AutoStartRoutine());
+    }
+
+    private IEnumerator AutoStartRoutine()
+    {
+        yield return new WaitForSeconds(autoStartDelay);
+
+        if (startMode == StartMode.CameraOnly) OnClickCamera();
+        else OnClickGallery();
     }
 
     public void OnClickCamera()

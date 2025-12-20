@@ -197,7 +197,7 @@ public class PhotoUIManager : UIBaseManager
         yield return new WaitForSeconds(1.0f);
 
         // シーン遷移
-        SceneManager.LoadScene("SkyScene");
+        PostSequenceManager.instance.FinalizeAndGoToSky();
     }
 
     // ★追加: GUIDをカンマ区切りで保存するヘルパー関数
