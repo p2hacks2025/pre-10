@@ -1,4 +1,4 @@
-using UnityEngine;
+ï»¿using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using System.Collections.Generic;
@@ -7,62 +7,62 @@ using Junya;
 public class SkyUIManager : UIBaseManager
 {
     // =================================================
-    // 1. İ’è€–Ú
+    // 1. è¨­å®šé …ç›®
     // =================================================
-    [Header("Šeƒpƒlƒ‹‚Ì‰B‚ê‚éˆÊ’u (‚‚³İ’è)")]
+    [Header("å„ãƒ‘ãƒãƒ«ã®éš ã‚Œã‚‹ä½ç½® (é«˜ã•è¨­å®š)")]
     [SerializeField] private float detailPanelOffset = 1200f;
     [SerializeField] private float postStarPanelOffset = 600f;
-    [SerializeField] private float replyPanelOffset = 1800f;   // \•ª‘å‚«‚È’l‚ğİ’è
+    [SerializeField] private float replyPanelOffset = 1800f;   // ååˆ†å¤§ããªå€¤ã‚’è¨­å®š
 
     // =================================================
-    // 2. UIƒp[ƒc‚ÌQÆ
+    // 2. UIãƒ‘ãƒ¼ãƒ„ã®å‚ç…§
     // =================================================
-    [Header("y1zDetailPanel (¯ÀÚ×)")]
+    [Header("ã€1ã€‘DetailPanel (æ˜Ÿåº§è©³ç´°)")]
     [SerializeField] private RectTransform detailPanel;
     [SerializeField] private TextMeshProUGUI nameText;
     [SerializeField] private Transform detailDescriptionRoot; 
-    [SerializeField] private Transform listContentRoot;       // ‚±‚±‚ª ScrollView/Viewport/Content ‚Å‚ ‚é‚±‚Æ
+    [SerializeField] private Transform listContentRoot;       // ã“ã“ãŒ ScrollView/Viewport/Content ã§ã‚ã‚‹ã“ã¨
     [SerializeField] private CommentListElement commentItemPrefab;
-    [Header("‚¢‚¢‚Ë‹@”\")]
-    [SerializeField] private Button likeButton;           // ƒ{ƒ^ƒ“–{‘Ì
-    [SerializeField] private Image likeButtonImage;       // F‚ğ•Ï‚¦‚é‘ÎÛiƒn[ƒg‰æ‘œ‚ÌImagej
+    [Header("ã„ã„ã­æ©Ÿèƒ½")]
+    [SerializeField] private Button likeButton;           // ãƒœã‚¿ãƒ³æœ¬ä½“
+    [SerializeField] private Image likeButtonImage;       // è‰²ã‚’å¤‰ãˆã‚‹å¯¾è±¡ï¼ˆãƒãƒ¼ãƒˆç”»åƒã®Imageï¼‰
     [SerializeField] private TextMeshProUGUI likeCountText;
-    [SerializeField] private Sprite heartOutlineSprite;   // ‰Ÿ‚·‘O (˜g‚Ì‚İ)
-    [SerializeField] private Sprite heartFilledSprite;    // ‰Ÿ‚µ‚½Œã (“h‚è‚Â‚Ô‚µ)
+    [SerializeField] private Sprite heartOutlineSprite;   // æŠ¼ã™å‰ (æ ã®ã¿)
+    [SerializeField] private Sprite heartFilledSprite;    // æŠ¼ã—ãŸå¾Œ (å¡—ã‚Šã¤ã¶ã—)
 
-    [SerializeField] private Color normalColor = Color.white; // ’Êí‚ÌF
-    [SerializeField] private Color likedColor = Color.red;    // ‚¢‚¢‚Ë‚ÌF
+    [SerializeField] private Color normalColor = Color.white; // é€šå¸¸æ™‚ã®è‰²
+    [SerializeField] private Color likedColor = Color.red;    // ã„ã„ã­æ™‚ã®è‰²
 
-    [Header("y2zPostStarPanel (—¬‚ê¯“Še)")]
+    [Header("ã€2ã€‘PostStarPanel (æµã‚Œæ˜ŸæŠ•ç¨¿)")]
     [SerializeField] private RectTransform postStarPanel;
     [SerializeField] private TMP_InputField postContentInput;
 
-    [Header("y3zReplyPanel (•ÔM)")]
+    [Header("ã€3ã€‘ReplyPanel (è¿”ä¿¡)")]
     [SerializeField] private RectTransform replyPanel;
     [SerializeField] private TMP_InputField replyContentInput;
     [SerializeField] private Transform replyDescriptionRoot;
 
-    [Header("‚»‚Ì‘¼")]
+    [Header("ãã®ä»–")]
     [SerializeField] private SkyCameraController cameraController;
     //[SerializeField] private CommentManager commentManager;
-    // “à•”•Ï”
+    // å†…éƒ¨å¤‰æ•°
     private ConstellationData currentData;
     private float currentPanelOffset;
 
     protected override void Start()
     {
-        // ‰ŠúˆÊ’u‚Ö”ò‚Î‚·
+        // åˆæœŸä½ç½®ã¸é£›ã°ã™
         if (detailPanel != null) detailPanel.anchoredPosition = new Vector2(0, -detailPanelOffset);
         if (postStarPanel != null) postStarPanel.anchoredPosition = new Vector2(0, -postStarPanelOffset);
         if (replyPanel != null) replyPanel.anchoredPosition = new Vector2(0, -replyPanelOffset);
     }
 
     // =================================================
-    // ƒpƒlƒ‹Ø‚è‘Ö‚¦ƒƒWƒbƒN
+    // ãƒ‘ãƒãƒ«åˆ‡ã‚Šæ›¿ãˆãƒ­ã‚¸ãƒƒã‚¯
     // =================================================
     private void SwitchPanel(RectTransform targetPanel, float targetOffset)
     {
-        // ŠJ‚¢‚Ä‚¢‚éƒpƒlƒ‹‚ªƒ^[ƒQƒbƒg‚Æˆá‚¤ê‡AŒÃ‚¢ƒpƒlƒ‹‚ğ‰B‚·
+        // é–‹ã„ã¦ã„ã‚‹ãƒ‘ãƒãƒ«ãŒã‚¿ãƒ¼ã‚²ãƒƒãƒˆã¨é•ã†å ´åˆã€å¤ã„ãƒ‘ãƒãƒ«ã‚’éš ã™
         if (currentPanel != null && currentPanel != targetPanel)
         {
             float oldOffset = 0f;
@@ -70,39 +70,39 @@ public class SkyUIManager : UIBaseManager
             else if (currentPanel == postStarPanel) oldOffset = postStarPanelOffset;
             else if (currentPanel == replyPanel) oldOffset = replyPanelOffset;
 
-            // ‘¦À‚É‰B‚·
+            // å³åº§ã«éš ã™
             currentPanel.anchoredPosition = new Vector2(0, -oldOffset);
         }
 
-        // V‚µ‚¢ƒpƒlƒ‹‚ğƒZƒbƒg
+        // æ–°ã—ã„ãƒ‘ãƒãƒ«ã‚’ã‚»ãƒƒãƒˆ
         currentPanel = targetPanel;
         currentPanelOffset = targetOffset;
 
-        // ƒAƒjƒ[ƒVƒ‡ƒ“ŠJn
+        // ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³é–‹å§‹
         if (currentAnimation != null) StopCoroutine(currentAnimation);
-        currentAnimation = StartCoroutine(SlidePanel(0)); // ‰æ–Ê“à(Y=0)‚Ö
+        currentAnimation = StartCoroutine(SlidePanel(0)); // ç”»é¢å†…(Y=0)ã¸
     }
 
     // =================================================
-    // Ú×‰æ–Ê (DetailPanel)
+    // è©³ç´°ç”»é¢ (DetailPanel)
     // =================================================
     public void ShowDetail(ConstellationData data)
     {
-        // ƒf[ƒ^©‘Ì‚ªnull‚Ìê‡‚Íˆ—‚ğ’†’f‚·‚é
+        // ãƒ‡ãƒ¼ã‚¿è‡ªä½“ãŒnullã®å ´åˆã¯å‡¦ç†ã‚’ä¸­æ–­ã™ã‚‹
         if (data == null)
         {
-            Debug.LogError("yUIƒGƒ‰[z•\¦‚µ‚æ‚¤‚Æ‚µ‚½¯Àƒf[ƒ^‚ªnull‚Å‚·B");
+            Debug.LogError("ã€UIã‚¨ãƒ©ãƒ¼ã€‘è¡¨ç¤ºã—ã‚ˆã†ã¨ã—ãŸæ˜Ÿåº§ãƒ‡ãƒ¼ã‚¿ãŒnullã§ã™ã€‚");
             return;
         }
 
         currentData = data;
 
-        // šC³FŠeƒvƒƒpƒeƒB‚Ìnullƒ`ƒFƒbƒN‚ğ‹­‰»
-        string constellationName = string.IsNullOrEmpty(data.constellationName) ? "–³‘è‚Ì¯À" : data.constellationName;
-        string description = string.IsNullOrEmpty(data.description) ? "à–¾‚Í‚ ‚è‚Ü‚¹‚ñB" : data.description;
+        // â˜…ä¿®æ­£ï¼šå„ãƒ—ãƒ­ãƒ‘ãƒ†ã‚£ã®nullãƒã‚§ãƒƒã‚¯ã‚’å¼·åŒ–
+        string constellationName = string.IsNullOrEmpty(data.constellationName) ? "ç„¡é¡Œã®æ˜Ÿåº§" : data.constellationName;
+        string description = string.IsNullOrEmpty(data.description) ? "èª¬æ˜ã¯ã‚ã‚Šã¾ã›ã‚“ã€‚" : data.description;
 
-        // ‚Ç‚Ìƒf[ƒ^‚ªŠJ‚©‚ê‚½‚©Šm”F
-        Debug.Log($"yUIzÚ×•\¦: {data.constellationName} (Like: {data.likeCount}, IsLiked: {data.isLiked})");
+        // ã©ã®ãƒ‡ãƒ¼ã‚¿ãŒé–‹ã‹ã‚ŒãŸã‹ç¢ºèª
+        Debug.Log($"ã€UIã€‘è©³ç´°è¡¨ç¤º: {data.constellationName} (Like: {data.likeCount}, IsLiked: {data.isLiked})");
 
         if (nameText) nameText.text = data.constellationName;
 
@@ -130,30 +130,30 @@ public class SkyUIManager : UIBaseManager
         SwitchPanel(detailPanel, detailPanelOffset);
     }
 
-    // CommentManager‚©‚çƒvƒŒƒnƒu‚ÆF‚ğæ“¾‚µ‚Ä¶¬‚·‚é‹¤’ÊŠÖ”
+    // CommentManagerã‹ã‚‰ãƒ—ãƒ¬ãƒãƒ–ã¨è‰²ã‚’å–å¾—ã—ã¦ç”Ÿæˆã™ã‚‹å…±é€šé–¢æ•°
     private void CreateCommentObject(Transform root, string text, bool useRandomColor)
     {
-        // 1. ƒVƒ“ƒOƒ‹ƒgƒ“ƒCƒ“ƒXƒ^ƒ“ƒX‚ğæ“¾ (Junya.CommentManager‚Æ–¾¦)
+        // 1. ã‚·ãƒ³ã‚°ãƒ«ãƒˆãƒ³ã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹ã‚’å–å¾— (Junya.CommentManagerã¨æ˜ç¤º)
         Junya.CommentManager manager = Junya.CommentManager.instance;
 
-        // ”O‚Ì‚½‚ßFind‚Å‚à’T‚·
+        // å¿µã®ãŸã‚Findã§ã‚‚æ¢ã™
         if (manager == null) manager = FindFirstObjectByType<Junya.CommentManager>();
 
         if (manager == null || manager.prefab == null)
         {
-            Debug.LogError("CommentManager‚ªŒ©‚Â‚©‚ç‚È‚¢‚©APrefab‚ªİ’è‚³‚ê‚Ä‚¢‚Ü‚¹‚ñI");
+            Debug.LogError("CommentManagerãŒè¦‹ã¤ã‹ã‚‰ãªã„ã‹ã€PrefabãŒè¨­å®šã•ã‚Œã¦ã„ã¾ã›ã‚“ï¼");
             return;
         }
 
-        // 2. ¶¬
+        // 2. ç”Ÿæˆ
         GameObject itemObj = Instantiate(manager.prefab, root);
 
-        // 3. ƒTƒCƒYƒŠƒZƒbƒg
+        // 3. ã‚µã‚¤ã‚ºãƒªã‚»ãƒƒãƒˆ
         itemObj.transform.localScale = Vector3.one;
         itemObj.transform.localPosition = Vector3.zero;
         itemObj.transform.localRotation = Quaternion.identity;
 
-        // 4. ƒZƒbƒgƒAƒbƒv
+        // 4. ã‚»ãƒƒãƒˆã‚¢ãƒƒãƒ—
         CommentListElement itemScript = itemObj.GetComponent<CommentListElement>();
         if (itemScript != null)
         {
@@ -161,7 +161,7 @@ public class SkyUIManager : UIBaseManager
 
             if (useRandomColor)
             {
-                // ƒ‰ƒ“ƒ_ƒ€F
+                // ãƒ©ãƒ³ãƒ€ãƒ è‰²
                 if (manager.iconColors != null && manager.iconColors.Count > 0)
                 {
                     iconColor = manager.iconColors[Random.Range(0, manager.iconColors.Count)];
@@ -169,7 +169,7 @@ public class SkyUIManager : UIBaseManager
             }
             else
             {
-                // à–¾•¶—p‚ÌŒÅ’èFi—áF‰©Fj
+                // èª¬æ˜æ–‡ç”¨ã®å›ºå®šè‰²ï¼ˆä¾‹ï¼šé»„è‰²ï¼‰
                 iconColor = new Color(1f, 0.8f, 0.2f);
             }
 
@@ -177,51 +177,51 @@ public class SkyUIManager : UIBaseManager
         }
     }
 
-    // w’è‚µ‚½êŠ‚ÉƒvƒŒƒnƒu‚ğ¶¬‚µ‚Äà–¾•¶‚ğ•\¦‚·‚éƒwƒ‹ƒp[ŠÖ”
+    // æŒ‡å®šã—ãŸå ´æ‰€ã«ãƒ—ãƒ¬ãƒãƒ–ã‚’ç”Ÿæˆã—ã¦èª¬æ˜æ–‡ã‚’è¡¨ç¤ºã™ã‚‹ãƒ˜ãƒ«ãƒ‘ãƒ¼é–¢æ•°
     private void SetDescriptionWithPrefab(Transform root, string text)
     {
         if (root == null) return;
 
-        // ‚·‚Å‚É‚ ‚é‚à‚Ì‚ğÁ‚·iŒÃ‚¢à–¾•¶‚ğíœj
+        // ã™ã§ã«ã‚ã‚‹ã‚‚ã®ã‚’æ¶ˆã™ï¼ˆå¤ã„èª¬æ˜æ–‡ã‚’å‰Šé™¤ï¼‰
         foreach (Transform child in root) Destroy(child.gameObject);
 
-        // ƒvƒŒƒnƒu¶¬
+        // ãƒ—ãƒ¬ãƒãƒ–ç”Ÿæˆ
         var item = Instantiate(commentItemPrefab, root);
 
-        // ƒTƒCƒYEˆÊ’uƒŠƒZƒbƒg
+        // ã‚µã‚¤ã‚ºãƒ»ä½ç½®ãƒªã‚»ãƒƒãƒˆ
         item.transform.localScale = Vector3.one;
         item.transform.localPosition = Vector3.zero;
         item.transform.localRotation = Quaternion.identity;
 
-        // ƒeƒLƒXƒgƒZƒbƒgiF‚Í–Ú—§‚Â‚æ‚¤‚É‰©F‚È‚Ç‚Éİ’è—áj
+        // ãƒ†ã‚­ã‚¹ãƒˆã‚»ãƒƒãƒˆï¼ˆè‰²ã¯ç›®ç«‹ã¤ã‚ˆã†ã«é»„è‰²ãªã©ã«è¨­å®šä¾‹ï¼‰
         item.Setup(text, new Color(1f, 0.8f, 0.2f));
     }
 
-    // ‚¢‚¢‚Ëƒ{ƒ^ƒ“‚ª‰Ÿ‚³‚ê‚½‚Æ‚«‚Ìˆ—
+    // ã„ã„ã­ãƒœã‚¿ãƒ³ãŒæŠ¼ã•ã‚ŒãŸã¨ãã®å‡¦ç†
     public void OnLikeButtonClicked()
     {
         if (currentData == null) return;
 
-        // ‚·‚Å‚É‚¢‚¢‚ËÏ‚İ‚È‚ç‰½‚à‚µ‚È‚¢
+        // ã™ã§ã«ã„ã„ã­æ¸ˆã¿ãªã‚‰ä½•ã‚‚ã—ãªã„
         if (currentData.isLiked) return;
         
-        // 1. ƒf[ƒ^XV
+        // 1. ãƒ‡ãƒ¼ã‚¿æ›´æ–°
         currentData.likeCount++;
         currentData.isLiked = true;
 
-        // u‚±‚ÌID‚ğ‚¢‚¢‚Ë‚µ‚½v‚Æ’[––‚É•Û‘¶‚·‚é
+        // ã€Œã“ã®IDã‚’ã„ã„ã­ã—ãŸã€ã¨ç«¯æœ«ã«ä¿å­˜ã™ã‚‹
         SaveLikedGuid(currentData.guid);
-        Debug.Log($"yUIz‚¢‚¢‚Ë‚µ‚Ü‚µ‚½: {currentData.constellationName} -> {currentData.likeCount}");
+        Debug.Log($"ã€UIã€‘ã„ã„ã­ã—ã¾ã—ãŸ: {currentData.constellationName} -> {currentData.likeCount}");
         
-        //  UIXV (‘¦À‚É”½‰f)
+        //  UIæ›´æ–° (å³åº§ã«åæ˜ )
         UpdateLikeUI();
-        // ƒNƒ‰ƒEƒhã‚Ì‚¢‚¢‚Ë”‚ğXV
+        // ã‚¯ãƒ©ã‚¦ãƒ‰ä¸Šã®ã„ã„ã­æ•°ã‚’æ›´æ–°
         if (FirebaseManager.instance != null)
         {
             FirebaseManager.instance.AddLike(currentData.guid, currentData.likeCount);
         }
 
-        // BloomXV
+        // Bloomæ›´æ–°
         if (SkyProject2D.instance != null)
         {
             SkyProject2D.instance.UpdateConstellationBloom(currentData);
@@ -229,13 +229,13 @@ public class SkyUIManager : UIBaseManager
         }
     }
 
-    // ‚¢‚¢‚Ë‚µ‚½GUID‚ğ•Û‘¶‚·‚éƒwƒ‹ƒp[ŠÖ”
+    // ã„ã„ã­ã—ãŸGUIDã‚’ä¿å­˜ã™ã‚‹ãƒ˜ãƒ«ãƒ‘ãƒ¼é–¢æ•°
     private void SaveLikedGuid(string guid)
     {
         string key = "LikedGuids";
         string currentSaved = PlayerPrefs.GetString(key, "");
 
-        // ‚Ü‚¾•Û‘¶‚³‚ê‚Ä‚¢‚È‚¯‚ê‚Î’Ç‰Á (ƒJƒ“ƒ}‹æØ‚è‚Å•Û‘¶)
+        // ã¾ã ä¿å­˜ã•ã‚Œã¦ã„ãªã‘ã‚Œã°è¿½åŠ  (ã‚«ãƒ³ãƒåŒºåˆ‡ã‚Šã§ä¿å­˜)
         if (!currentSaved.Contains(guid))
         {
             if (string.IsNullOrEmpty(currentSaved))
@@ -251,65 +251,65 @@ public class SkyUIManager : UIBaseManager
         }
     }
 
-    // UI‚Ì•\¦‚¾‚¯‚ğXV‚·‚éƒwƒ‹ƒp[ŠÖ”
+    // UIã®è¡¨ç¤ºã ã‘ã‚’æ›´æ–°ã™ã‚‹ãƒ˜ãƒ«ãƒ‘ãƒ¼é–¢æ•°
     private void UpdateLikeUI()
     {
-        if (currentData == null || string.IsNullOrEmpty(currentData.guid)) return; // guid‚ªnull‚È‚ç”»’è•s”\
+        if (currentData == null || string.IsNullOrEmpty(currentData.guid)) return; // guidãŒnullãªã‚‰åˆ¤å®šä¸èƒ½
 
-        // ©•ª‚Ì“Še‚©‚Ç‚¤‚©”»’è‚·‚é
+        // è‡ªåˆ†ã®æŠ•ç¨¿ã‹ã©ã†ã‹åˆ¤å®šã™ã‚‹
         string myGuids = PlayerPrefs.GetString("MyConstellationGuids", "");
         bool isMine = myGuids.Contains(currentData.guid);
 
-        // 1. ƒeƒLƒXƒgXV
+        // 1. ãƒ†ã‚­ã‚¹ãƒˆæ›´æ–°
         if (likeCountText != null)
         {
             if (isMine)
             {
-                // ©•ª‚Ì‚¾‚©‚ç”š‚ğŒ©‚¹‚é
+                // è‡ªåˆ†ã®ã ã‹ã‚‰æ•°å­—ã‚’è¦‹ã›ã‚‹
                 likeCountText.text = currentData.likeCount.ToString();
-                likeCountText.gameObject.SetActive(true); // •\¦
+                likeCountText.gameObject.SetActive(true); // è¡¨ç¤º
             }
             else
             {
-                // ‘¼l‚Ì‚Í‰B‚·
-                likeCountText.gameObject.SetActive(false); // Š®‘S‚ÉÁ‚µ‚½‚¢ê‡‚Í‚±‚¿‚ç
+                // ä»–äººã®ã¯éš ã™
+                likeCountText.gameObject.SetActive(false); // å®Œå…¨ã«æ¶ˆã—ãŸã„å ´åˆã¯ã“ã¡ã‚‰
             }
         }
         else
         {
-            Debug.LogError("yUIƒGƒ‰[zLikeCountText‚ªInspector‚Åİ’è‚³‚ê‚Ä‚¢‚Ü‚¹‚ñI");
+            Debug.LogError("ã€UIã‚¨ãƒ©ãƒ¼ã€‘LikeCountTextãŒInspectorã§è¨­å®šã•ã‚Œã¦ã„ã¾ã›ã‚“ï¼");
         }
 
-        // 2. ƒAƒCƒRƒ“‚ÆF‚ÌXV
+        // 2. ã‚¢ã‚¤ã‚³ãƒ³ã¨è‰²ã®æ›´æ–°
         if (likeButtonImage != null)
         {
-            // ‚¢‚¢‚ËÏ‚İ‚©‚Ç‚¤‚©‚Å‰æ‘œ‚ÆF‚ğØ‚è‘Ö‚¦‚é
+            // ã„ã„ã­æ¸ˆã¿ã‹ã©ã†ã‹ã§ç”»åƒã¨è‰²ã‚’åˆ‡ã‚Šæ›¿ãˆã‚‹
             if (currentData.isLiked)
             {
-                // ‚¢‚¢‚ËÏF“h‚è‚Â‚Ô‚µ‰æ‘œ • ÔF
+                // ã„ã„ã­æ¸ˆï¼šå¡—ã‚Šã¤ã¶ã—ç”»åƒ ï¼† èµ¤è‰²
                 if (heartFilledSprite != null) likeButtonImage.sprite = heartFilledSprite;
                 likeButtonImage.color = likedColor;
             }
             else
             {
-                // –¢‚¢‚¢‚ËF˜gü‰æ‘œ • ”’F
+                // æœªã„ã„ã­ï¼šæ ç·šç”»åƒ ï¼† ç™½è‰²
                 if (heartOutlineSprite != null) likeButtonImage.sprite = heartOutlineSprite;
                 likeButtonImage.color = normalColor;
             }
         }
 
-        // 3. ƒ{ƒ^ƒ“‚Ì—LŒø‰»§Œä
+        // 3. ãƒœã‚¿ãƒ³ã®æœ‰åŠ¹åŒ–åˆ¶å¾¡
         if (likeButton != null)
         {
             likeButton.interactable = !currentData.isLiked;
         }
     }
 
-    // •ÔMƒ{ƒ^ƒ“ (DetailPanel -> ReplyPanel)
+    // è¿”ä¿¡ãƒœã‚¿ãƒ³ (DetailPanel -> ReplyPanel)
     public void OnReplyButtonClicked()
     {
         if (replyContentInput) replyContentInput.text = "";
-        // •ÔMƒpƒlƒ‹‚É‚à“¯‚¶à–¾•¶‚ğƒvƒŒƒnƒu‚Å•\¦
+        // è¿”ä¿¡ãƒ‘ãƒãƒ«ã«ã‚‚åŒã˜èª¬æ˜æ–‡ã‚’ãƒ—ãƒ¬ãƒãƒ–ã§è¡¨ç¤º
         if (currentData != null)
         {
             SetDescriptionWithPrefab(replyDescriptionRoot, currentData.description);
@@ -318,7 +318,7 @@ public class SkyUIManager : UIBaseManager
     }
 
     // =================================================
-    // •ÔM‹@”\ (ReplyPanel)
+    // è¿”ä¿¡æ©Ÿèƒ½ (ReplyPanel)
     // =================================================
     public void OnSendReplyClicked()
     {
@@ -327,34 +327,34 @@ public class SkyUIManager : UIBaseManager
 
         string text = replyContentInput.text;
 
-        // 1. ƒRƒƒ“ƒgƒf[ƒ^‚ğì¬
+        // 1. ã‚³ãƒ¡ãƒ³ãƒˆãƒ‡ãƒ¼ã‚¿ã‚’ä½œæˆ
         Comment newComment = new Comment(text);
 
-        // 2. ƒf[ƒ^‚ÌQÆ‚É’Ç‰Ái‚±‚±‚Åƒƒ‚ƒŠã‚Ìƒf[ƒ^‚ÍXV‚³‚ê‚éj
+        // 2. ãƒ‡ãƒ¼ã‚¿ã®å‚ç…§ã«è¿½åŠ ï¼ˆã“ã“ã§ãƒ¡ãƒ¢ãƒªä¸Šã®ãƒ‡ãƒ¼ã‚¿ã¯æ›´æ–°ã•ã‚Œã‚‹ï¼‰
         currentData.Attach(ref newComment);
 
-        Debug.Log("•ÔMƒf[ƒ^’Ç‰ÁŠ®—¹: " + text);
+        Debug.Log("è¿”ä¿¡ãƒ‡ãƒ¼ã‚¿è¿½åŠ å®Œäº†: " + text);
         /*
-        // XV‚³‚ê‚½ƒf[ƒ^‚ğƒ[ƒJƒ‹‚Ìƒtƒ@ƒCƒ‹‚É•Û‘¶‚·‚éI
+        // æ›´æ–°ã•ã‚ŒãŸãƒ‡ãƒ¼ã‚¿ã‚’ãƒ­ãƒ¼ã‚«ãƒ«ã®ãƒ•ã‚¡ã‚¤ãƒ«ã«ä¿å­˜ã™ã‚‹ï¼
         if (SkyProject2D.instance != null)
         {
             SkyProject2D.instance.SaveLocalData();
         }
         */
-        // ƒf[ƒ^‘S‘Ì‚ğƒNƒ‰ƒEƒh‚Éã‘‚«•Û‘¶‚µ‚ÄXV
+        // ãƒ‡ãƒ¼ã‚¿å…¨ä½“ã‚’ã‚¯ãƒ©ã‚¦ãƒ‰ã«ä¸Šæ›¸ãä¿å­˜ã—ã¦æ›´æ–°
         if (FirebaseManager.instance != null)
         {
             FirebaseManager.instance.SaveConstellation(currentData);
         }
-        // 3. “ü—Í—“ƒNƒŠƒA
+        // 3. å…¥åŠ›æ¬„ã‚¯ãƒªã‚¢
         replyContentInput.text = "";
 
-        // 4. Ú×‰æ–ÊÄ•\¦
+        // 4. è©³ç´°ç”»é¢å†è¡¨ç¤º
         ShowDetail(currentData);
     }
 
     // =================================================
-    // —¬‚ê¯‹@”\
+    // æµã‚Œæ˜Ÿæ©Ÿèƒ½
     // =================================================
     public void ShowPostStarPanel()
     {
@@ -368,14 +368,14 @@ public class SkyUIManager : UIBaseManager
         string msg = postContentInput.text;
         if (string.IsNullOrEmpty(msg)) return;
 
-        ShootingStarData data = new ShootingStarData(msg, "©•ª");
-        // 1. ƒ[ƒJƒ‹‚Å”ò‚Î‚·i©•ª‚Ì‰æ–Ê—pj
+        ShootingStarData data = new ShootingStarData(msg, "è‡ªåˆ†");
+        // 1. ãƒ­ãƒ¼ã‚«ãƒ«ã§é£›ã°ã™ï¼ˆè‡ªåˆ†ã®ç”»é¢ç”¨ï¼‰
         if (ShootingStarManager.instance != null)
         {
             ShootingStarManager.instance.SpawnStar(data);
         }
 
-        //@ƒNƒ‰ƒEƒh‚É•Û‘¶‚µ‚ÄA‘¼‚Ìl‚Ì‰æ–Ê‚É‚à”ò‚Î‚·
+        //ã€€ã‚¯ãƒ©ã‚¦ãƒ‰ã«ä¿å­˜ã—ã¦ã€ä»–ã®äººã®ç”»é¢ã«ã‚‚é£›ã°ã™
         if (FirebaseManager.instance != null)
         {
             FirebaseManager.instance.SaveShootingStar(data);
@@ -385,11 +385,11 @@ public class SkyUIManager : UIBaseManager
     }
 
     // =================================================
-    // •Â‚¶‚éˆ—
+    // é–‰ã˜ã‚‹å‡¦ç†
     // =================================================
     public override void OnCloseButtonClicked()
     {
-        // •ÔM‰æ–Ê‚Åu•Â‚¶‚év‚ğ‰Ÿ‚µ‚½‚Æ‚«‚ÍAÚ×‚É–ß‚é‚Ì‚ª©‘R
+        // è¿”ä¿¡ç”»é¢ã§ã€Œé–‰ã˜ã‚‹ã€ã‚’æŠ¼ã—ãŸã¨ãã¯ã€è©³ç´°ã«æˆ»ã‚‹ã®ãŒè‡ªç„¶
         if (currentPanel == replyPanel && currentData != null)
         {
             ShowDetail(currentData);
@@ -399,7 +399,7 @@ public class SkyUIManager : UIBaseManager
         if (currentPanel == null) return;
         if (currentAnimation != null) StopCoroutine(currentAnimation);
 
-        // Œ»İ‚Ìƒpƒlƒ‹İ’è’l‚ğg‚Á‚Ä‰B‚·
+        // ç¾åœ¨ã®ãƒ‘ãƒãƒ«è¨­å®šå€¤ã‚’ä½¿ã£ã¦éš ã™
         currentAnimation = StartCoroutine(SlidePanel(-currentPanelOffset));
 
         if (cameraController != null) cameraController.ResetView();

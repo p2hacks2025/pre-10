@@ -29,6 +29,9 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/con_stella/Main(Don'tTouch)/Scenes/PhotoScene.unity
     guid: 39b65a00b5ec0bf499e51102a3a9d6dd
+  - enabled: 1
+    path: Assets/con_stella/Main(Don'tTouch)/Scenes/CameraScene.unity
+    guid: d4887d482b5b3084d8d7e4166ad62b0c
   - enabled: 0
     path: Assets/con_stella/WorkSpace/Shuto/Scenes/TitleScene.unity
     guid: 144a532d5e03bcb48a732257d310b926

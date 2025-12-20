@@ -1844,7 +1844,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ConstellationGenerator
   starPrefab: {fileID: 6168859803629466862, guid: 84b4ea7b0f5866d42a4c6a0696464e94, type: 3}
   constellationRoot: {fileID: 9129824036978310819}
-  linePrefab: {fileID: 2270894329751712333, guid: 8fa84bea1ab5c7f4bb11721e49c06c19, type: 3}
+  linePrefab: {fileID: 2270894329751712333, guid: 12007a0a7c424e341ab55cab309ccfce, type: 3}
   minStarScale: 5
   maxStarScale: 10
   minDistanceBetweenStars: 100

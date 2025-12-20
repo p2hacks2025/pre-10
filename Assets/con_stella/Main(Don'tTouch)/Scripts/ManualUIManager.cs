@@ -151,7 +151,6 @@ public class ManualUIManager : UIBaseManager
     {
         if (deletePopupPanel != null)
         {
-            // ★修正: SetActiveだけでなく、SwitchPanelを使ってスライドインさせる
             SwitchPanel(deletePopupPanel, panelShowOffset);
             isDeletingPress = false;
         }
@@ -282,43 +281,13 @@ public class ManualUIManager : UIBaseManager
 
     private IEnumerator PostSequence(ConstellationData data)
     {
-        Debug.Log($"投稿完了: {data.constellationName}");
-        PlayerPrefs.SetString("NextFocusGUID", data.guid);
-        // 「自分の星座リスト」にこのGUIDを追加保存する
-        SaveMyConstellationGuid(data.guid);
-        PlayerPrefs.Save();
-        OnCloseButtonClicked();  //パネルを閉じる
-        // フェードイン演出
-        if (postMessageCanvasGroup != null)
-        {
-            // まず表示状態にして、完全に透明にする
-            postMessageCanvasGroup.gameObject.SetActive(true);
-            postMessageCanvasGroup.alpha = 0f;
+        OnCloseButtonClicked();  //パネルを
 
-            float timer = 0f;
-
-            // 指定した時間をかけて alpha を 0 から 1 にする
-            while (timer < fadeDuration)
-            {
-                timer += Time.deltaTime;
-                postMessageCanvasGroup.alpha = Mathf.Lerp(0f, 1f, timer / fadeDuration);
-                yield return null; // 1フレーム待つ
-            }
-
-            // 念のため最後に確実に1にする
-            postMessageCanvasGroup.alpha = 1f;
-
-            // 文字が見えきってから少しだけ余韻を持たせる（0.5秒待機）
-            yield return new WaitForSeconds(0.5f);
-        }
-        else
-        {
-            // 設定し忘れたとき用（今まで通りの待機）
-            yield return new WaitForSeconds(1.0f);
-        }
-
-        yield return new WaitForSeconds(1.0f);
-        SceneManager.LoadScene("SkyScene");
+        yield return PostSequenceManager.instance.PlayPostSequence(
+        data,
+        postMessageCanvasGroup,
+        fadeDuration
+    );
     }
 
     // ================================================================================

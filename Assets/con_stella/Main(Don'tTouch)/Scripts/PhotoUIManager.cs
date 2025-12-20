@@ -159,45 +159,15 @@ public class PhotoUIManager : UIBaseManager
         }
     }
 
-    // ★追加: ManualSceneと同じ投稿演出
     private IEnumerator PostSequence(ConstellationData data)
     {
-        Debug.Log($"投稿完了: {data.constellationName}");
+        OnCloseButtonClicked();  //パネルを
 
-        // 次のシーンでカメラを向けるために保存
-        PlayerPrefs.SetString("NextFocusGUID", data.guid);
-        // 「自分の星座リスト」にこのGUIDを追加保存する
-        SaveMyConstellationGuid(data.guid);
-        PlayerPrefs.Save();
-
-        // パネルを閉じる
-        OnCloseButtonClicked();
-
-        // フェードイン演出
-        if (postMessageCanvasGroup != null)
-        {
-            postMessageCanvasGroup.gameObject.SetActive(true);
-            postMessageCanvasGroup.alpha = 0f;
-
-            float timer = 0f;
-            while (timer < fadeDuration)
-            {
-                timer += Time.deltaTime;
-                postMessageCanvasGroup.alpha = Mathf.Lerp(0f, 1f, timer / fadeDuration);
-                yield return null;
-            }
-            postMessageCanvasGroup.alpha = 1f;
-            yield return new WaitForSeconds(0.5f);
-        }
-        else
-        {
-            yield return new WaitForSeconds(1.0f);
-        }
-
-        yield return new WaitForSeconds(1.0f);
-
-        // シーン遷移
-        PostSequenceManager.instance.FinalizeAndGoToSky();
+        yield return PostSequenceManager.instance.PlayPostSequence(
+        data,
+        postMessageCanvasGroup,
+        fadeDuration
+    );
     }
 
     // ★追加: GUIDをカンマ区切りで保存するヘルパー関数
